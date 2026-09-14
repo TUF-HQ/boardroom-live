@@ -720,13 +720,24 @@
       const mats = (s.materials || []).map((m) => state.docs.find((d) => d.id === m)).filter(Boolean);
       const prep = (s.prep || []).map((p) => { const done = p.id === 'challenge' ? state.challengeSent : !!state.prepDone[p.id]; const status = done ? 'Done' : p.note ? p.note : p.due ? inWords(p.due) : ''; const attr = p.push ? 'data-push="' + p.push + '" data-prep-visit="' + p.id + '"' : (p.note ? 'data-toast="' + esc(p.note) + '."' : 'data-prep="' + p.id + '"'); return '<button class="pr' + (done ? ' done' : '') + '" ' + attr + '><span class="sq' + (done ? ' done' : (p.note ? ' off' : '')) + '"></span><span class="t">' + esc(p.t) + '</span><span class="s">' + esc(status) + '</span></button>'; }).join('');
       const doneCount = (s.prep || []).filter((p) => p.id === 'challenge' ? state.challengeSent : state.prepDone[p.id]).length;
+      const sd = s.sdocs || { summary: [], slides: [], actions: [], extra: [], accountability: [] };
+      const myCommits = state.commitments.filter((c) => c.fromId === s.id);
+      // The day's IP: slides, actions, extras. Legacy materials (s.materials) fold in as extras.
+      const extras = sd.extra.concat(mats.filter((d) => !sd.slides.concat(sd.actions, sd.extra, sd.summary, sd.accountability).some((x) => x.id === d.id)));
+      const ipGroups = [['Slides', sd.slides], ['Actions', sd.actions], ['Extras', extras]].filter((g) => g[1].length);
+      const past = !s.upcoming;
       return top('Sessions') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">' + esc(s.type) + (s.upcoming ? ', ' + esc(awayWords(s.date)).replace(/^is /, '') : '') + '</div><div class="h1">' + esc(s.title) + '</div><div class="sub">' + esc(weekday(s.date)) + ' ' + esc(s.long) + ', ' + esc(s.time) + '. ' + esc(s.where) + '.</div></div><div class="stack">' +
         (s.upcoming && s.prep ? S('<div style="display:flex; justify-content:space-between; align-items:baseline"><div class="label">Before you come</div><span class="faint" style="font-size:11px">' + doneCount + ' of ' + s.prep.length + '</span></div><div class="prep">' + prep + '</div>', { hi: true, tab: doneCount < s.prep.length }) : '') +
-        S('<div class="label">What to expect</div><div class="prose"><p>' + esc(s.expect) + '</p></div>' + (s.type === 'Boardroom Day' ? '<div class="day" style="margin-top:6px"><div><span class="w">Morning</span><span class="x"><b>' + esc(s.theme || 'Expert session') + '</b>Expert led, themed to the role of the CEO.</span></div><div><span class="w">Afternoon</span><span class="x"><b>The room</b>Every Biggest Challenge worked by your peers.</span></div><div><span class="w">Close</span><span class="x"><b>Commitments</b>Agreed before you leave, in your tracker within 48 hours.</span></div></div>' : '')) +
+        // Session summary (past sessions), the document the team provides.
+        (past && sd.summary.length ? S('<div class="label">Session summary</div><div class="sub" style="margin-top:-2px">A look back at the day. Tap to read.</div><div style="margin-top:6px">' + sd.summary.map(docRow).join('') + '</div>', { hi: true, tab: true }) : '') +
+        // What to expect: upcoming always; past only when there is no summary yet.
+        ((s.upcoming || !sd.summary.length) ? S('<div class="label">What to expect</div><div class="prose"><p>' + esc(s.expect) + '</p></div>' + (s.type === 'Boardroom Day' ? '<div class="day" style="margin-top:6px"><div><span class="w">Morning</span><span class="x"><b>' + esc(s.theme || 'Expert session') + '</b>Expert led, themed to the role of the CEO.</span></div><div><span class="w">Afternoon</span><span class="x"><b>The room</b>Every Biggest Challenge worked by your peers.</span></div><div><span class="w">Close</span><span class="x"><b>Commitments</b>Agreed before you leave, in your tracker within 48 hours.</span></div></div>' : '')) : '') +
         (s.dannyNote ? S('<div class="label">Danny’s note</div><div style="font-size:14px; line-height:1.6">“' + esc(s.dannyNote) + '”</div><div style="font-size:11px; color:#B9B9B2">Danny, ' + esc(longDate(s.date)) + '</div>', { dark: true }) : '') +
         (s.upcoming ? '<div class="reveal" style="display:flex; flex-direction:column; gap:10px"><a class="btn ghost" style="text-decoration:none" href="' + gcalFor(s) + '" target="_blank" rel="noopener" data-caltrack="' + s.id + '">Add to Google Calendar</a><button class="btn ghost" data-ics="' + s.id + '">Apple or Outlook invite</button></div>' : '') +
-        (mats.length ? S('<div class="label" style="padding:12px 0 6px 0">Materials</div>' + mats.map(docRow).join(''), { list: true }) : '') +
-        (!s.upcoming && s.agreed ? S('<div class="label" style="padding:12px 0 6px 0">Commitments from this session</div>' + state.commitments.filter((c) => c.fromId === s.id).map((c) => rowBtn('commitment:' + c.id, esc(c.text), c.status === 'done' ? 'Delivered' : c.status === 'parked' ? 'Parked' : 'Open')).join(''), { list: true }) : '') +
+        // The IP from the day: slides, actions, extras.
+        (ipGroups.length ? S('<div class="label" style="padding:12px 0 2px 0">The IP from the day</div>' + ipGroups.map((g) => '<div class="faint" style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:10px 0 2px 0">' + esc(g[0]) + '</div>' + g[1].map(docRow).join('')).join(''), { list: true }) : '') +
+        // Commitment tracker and accountability: the member's own commitments from the day, plus any accountability sheet.
+        (past && (myCommits.length || sd.accountability.length) ? S('<div class="label" style="padding:12px 0 6px 0">Your commitments and accountability</div>' + myCommits.map((c) => rowBtn('commitment:' + c.id, esc(c.text), c.status === 'done' ? 'Delivered' : c.status === 'parked' ? 'Parked' : 'Open')).join('') + sd.accountability.map(docRow).join(''), { list: true }) : '') +
         '</div></div>';
     }
     if (type === 'commitment') {
@@ -930,14 +941,18 @@
     return { id: row.id, cat: row.category, title: row.title, meta: row.meta || '', about: row.about || '', inside: [], link: safeLink, isNew: !!row.is_new };
   }
   async function loadAll() {
-    const [sess, docs, posts, settings, mem] = await Promise.all([
+    const [sess, docs, posts, settings, mem, sdocs] = await Promise.all([
       sb.from('br_sessions').select('*').eq('published', true).order('session_date'),
       sb.from('br_documents').select('*').eq('published', true).order('created_at'),
       sb.from('br_posts').select('*').eq('approved', true).order('posted_at', { ascending: false }),
       sb.from('br_settings').select('*'),
-      sb.from('br_members').select('*').ilike('email', authEmail)
+      sb.from('br_members').select('*').ilike('email', authEmail),
+      sb.from('br_session_docs').select('*').order('sort')
     ]);
-    const err = [sess, docs, posts, settings, mem].map((r) => r.error).find(Boolean);
+    // br_session_docs may not exist yet (migration v2). Treat a missing
+    // table as no links rather than a hard failure.
+    const sdocsMissing = sdocs.error && /session_docs|does not exist|schema cache/i.test(sdocs.error.message || '');
+    const err = [sess, docs, posts, settings, mem].map((r) => r.error).find(Boolean) || (sdocs.error && !sdocsMissing ? sdocs.error : null);
     if (err) throw err;
     const mrow = (mem.data || [])[0] || null;
     me = mrow ? mrow.id : null;
@@ -947,6 +962,14 @@
     state.sessions.sort((a, b) => parse(a.date) - parse(b.date));
     attachPrep(state.sessions);
     state.docs = (docs.data || []).map(hydrateDoc);
+    // Attach the day's documents to each session, grouped by role.
+    const docById = {}; state.docs.forEach((d) => { docById[d.id] = d; });
+    state.sessions.forEach((s) => { s.sdocs = { summary: [], slides: [], actions: [], extra: [], accountability: [] }; });
+    const sessById = {}; state.sessions.forEach((s) => { sessById[s.id] = s; });
+    (sdocsMissing ? [] : (sdocs.data || [])).forEach((r) => {
+      const s = sessById[r.session_id]; const d = docById[r.document_id];
+      if (s && d && s.sdocs[r.role]) s.sdocs[r.role].push(d);
+    });
     state.updates = (posts.data || []).map((r) => ({ d: agoWords(r.posted_at), t: r.body }));
     const settingsMap = {}; (settings.data || []).forEach((r) => { settingsMap[r.key] = r.value || {}; });
     state.paused = !!(settingsMap.app && settingsMap.app.paused);
