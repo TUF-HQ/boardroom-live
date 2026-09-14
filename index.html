@@ -1,0 +1,1037 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://tzbjikrnvphbbwfxjxdv.supabase.co; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'self'">
+<title>The Boardroom</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ground: #EDECE6; --sheet: #FFFFFF; --ink: #0A0A0A; --ink2: #6B6B66; --ink3: #9A9A93;
+    --line: #EFEEE8; --line2: #E3E2DB; --track: #EFEEE8; --accent: #FBF000; --frame: #E2E1DA;
+    --shadow: 0 1px 2px rgba(20,20,10,0.06), 0 6px 18px rgba(20,20,10,0.06);
+    --shadow-hi: 0 1px 2px rgba(20,20,10,0.06), 0 10px 28px rgba(20,20,10,0.10);
+    --ease: cubic-bezier(0.32, 0.72, 0, 1); --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --font: 'Montserrat', 'Helvetica Neue', Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--frame); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  input, textarea { font: inherit; color: inherit; }
+  p { margin: 0; }
+
+  .stage { min-height: 100%; display: flex; align-items: center; justify-content: center; gap: 64px; padding: 40px 24px; }
+  .phone { width: 390px; height: 844px; background: var(--ground); border-radius: 44px; box-shadow: 0 30px 80px rgba(20, 20, 10, 0.20), 0 2px 0 rgba(255,255,255,0.7) inset; overflow: hidden; position: relative; flex-shrink: 0; }
+  .screen { position: absolute; inset: 0; overflow: hidden; background: var(--ground); }
+  @media (max-width: 560px) {
+    body { background: var(--ground); }
+    .stage { padding: 0; min-height: 100dvh; align-items: stretch; }
+    .phone { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; }
+  }
+
+  /* Root views */
+  .views { position: absolute; inset: 0; transition: transform 460ms var(--ease), opacity 460ms var(--ease); transform-origin: center 40%; }
+  .views.pushed { transform: scale(0.96); opacity: 0.55; }
+  .view { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; padding: 0 0 110px 0; display: none; scrollbar-width: none; }
+  .view::-webkit-scrollbar { display: none; }
+  .view.on { display: block; }
+  .view.enter { animation: viewIn 300ms var(--ease-out) both; }
+  .view.exit { animation: viewOut 160ms ease both; pointer-events: none; }
+  @keyframes viewIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes viewOut { from { opacity: 1; } to { opacity: 0; } }
+  .reveal { animation: rise 560ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 55ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+  /* Common */
+  .top { display: flex; align-items: center; justify-content: space-between; padding: 26px 22px 0 22px; min-height: 60px; }
+  .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink2); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+  .pad { padding-left: 22px; padding-right: 22px; }
+  .head { padding-top: 24px; display: flex; flex-direction: column; gap: 6px; }
+  .h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2; text-wrap: balance; }
+  .h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.25; }
+  .h3 { font-size: 17px; font-weight: 600; line-height: 1.3; }
+  .sub { font-size: 14px; color: var(--ink2); }
+  .label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink2); }
+  .muted { color: var(--ink2); }
+  .faint { color: var(--ink3); }
+  .small { font-size: 13px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; padding-top: 20px; }
+  .sheet { position: relative; background: var(--sheet); border-radius: 10px; padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; }
+  .sheet.hi { box-shadow: var(--shadow-hi); }
+  .sheet.dark { background: var(--ink); color: #F2F1EA; }
+  .sheet.dark .label { color: var(--accent); }
+  .sheet.list { padding: 6px 18px; gap: 0; }
+  .sheet > .ixt + div { padding-right: 40px; }
+  .ixt { position: absolute; top: -1px; right: 22px; width: 26px; height: 18px; background: var(--accent); border: 1px solid var(--ink); border-top: 0; border-radius: 0 0 4px 4px; }
+  button.sheet { transition: transform 200ms var(--ease-out), box-shadow 200ms; }
+  button.sheet:active { transform: scale(0.99); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; border-top: 1px solid var(--line); width: 100%; text-align: left; }
+  .row:first-of-type { border-top: 0; }
+  .row .l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .row .l b { font-weight: 500; font-size: 14px; line-height: 1.4; }
+  .row .l span { font-size: 13px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row svg { flex-shrink: 0; }
+  .row:hover .l b { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .btn { display: flex; align-items: center; justify-content: center; height: 46px; width: 100%; background: var(--ink); color: #FFFFFF; font-weight: 600; font-size: 13px; border-radius: 6px; transition: transform 160ms var(--ease-out), background 160ms; }
+  .btn:active { transform: scale(0.985); }
+  .btn.accent { background: var(--accent); color: var(--ink); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  .btn.done { background: var(--ground); color: var(--ink2); }
+  .link { color: var(--ink); font-weight: 600; font-size: 13px; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; min-height: 40px; display: inline-flex; align-items: center; }
+  .quiet-link { color: var(--ink); font-size: 12px; font-weight: 600; min-height: 40px; display: inline-flex; align-items: center; }
+  .quiet-link:hover { text-decoration: underline; }
+  .sq { display: inline-block; width: 9px; height: 9px; background: var(--accent); border: 1px solid var(--ink); flex-shrink: 0; }
+  .sq.off { background: transparent; border-color: var(--ink3); }
+  .sq.done { background: var(--ink); border-color: var(--ink); }
+  .quote { display: flex; gap: 14px; align-items: flex-start; padding-top: 22px; }
+  .quote i { width: 2px; align-self: stretch; background: var(--ink); flex-shrink: 0; }
+  .quote .q { font-size: 14px; line-height: 1.55; font-weight: 500; }
+  .foot { padding: 28px 0 0 0; font-size: 12px; color: var(--ink3); }
+
+  /* Brief */
+  .bi .n { font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--ink2); }
+  .bi .t { font-size: 17px; font-weight: 600; line-height: 1.3; text-wrap: balance; }
+  .bi .w { font-size: 14px; color: var(--ink2); line-height: 1.55; }
+  .bi .act { margin-top: 6px; }
+
+  .pri { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .pri:first-of-type { border-top: 0; }
+  .pri .n { font-size: 11px; font-weight: 600; color: var(--ink3); width: 18px; flex-shrink: 0; padding-top: 3px; }
+  .pri .t { font-size: 14px; font-weight: 500; line-height: 1.5; }
+
+  /* Commitments */
+  .chips { display: flex; gap: 8px; padding-top: 18px; }
+  .chip { height: 34px; padding: 0 16px; display: flex; align-items: center; border-radius: 17px; background: var(--sheet); font-size: 12px; font-weight: 500; color: var(--ink2); box-shadow: 0 1px 2px rgba(20,20,10,0.06); transition: background 220ms, color 220ms; }
+  .chip.on { background: var(--ink); color: #FFFFFF; font-weight: 600; }
+  .cs { flex-direction: row; gap: 14px; align-items: flex-start; }
+  .cs.dim .text { color: var(--ink2); }
+  .check { width: 44px; height: 44px; margin: -11px 0 -11px -11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .check .box { width: 22px; height: 22px; border: 1.5px solid var(--ink); border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 220ms var(--ease-out), border-color 220ms; }
+  .check.parked .box { border-style: dashed; border-color: var(--ink3); }
+  .check svg { opacity: 0; transition: opacity 1ms linear 80ms; }
+  .check svg path { stroke: var(--ink); stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 260ms var(--ease-out) 80ms; }
+  .check.on svg { opacity: 1; transition-delay: 0ms; }
+  .check.on .box { background: var(--accent); border-color: var(--ink); border-style: solid; }
+  .check.on svg path { stroke-dashoffset: 0; }
+  .cs .body { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; text-align: left; }
+  .cs .text { font-size: 15px; font-weight: 600; line-height: 1.4; }
+  .cs .meta { font-size: 13px; color: var(--ink2); }
+  .cs .meta b { font-weight: 600; color: var(--ink); }
+  .cs .body:hover .text { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .cs.collapse { overflow: hidden; max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; margin-top: -12px; }
+  .cs { transition: max-height 320ms var(--ease), opacity 240ms ease, padding 320ms var(--ease), margin 320ms var(--ease); max-height: 240px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--ink2); border: 1px solid var(--line2); padding: 2px 6px; border-radius: 3px; margin-left: 6px; vertical-align: 2px; }
+  .add { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; font-size: 14px; font-weight: 600; }
+  .add .plus { width: 28px; height: 28px; border: 1.5px solid var(--ink); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .add:hover .plus { background: var(--accent); }
+  .strip { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; margin-top: 14px; padding: 0 16px; background: var(--sheet); border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow); }
+  .strip .grow { flex-grow: 1; }
+  .strip .go { font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+
+  /* Sessions and library */
+  .seg { display: flex; background: var(--sheet); border-radius: 12px; padding: 4px; box-shadow: 0 1px 2px rgba(20,20,10,0.06); position: relative; margin-top: 18px; }
+  .seg button { flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--ink2); position: relative; z-index: 1; transition: color 240ms; }
+  .seg button.on { color: #FFFFFF; font-weight: 600; }
+  .seg .ind { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: var(--ink); border-radius: 9px; transition: transform 380ms var(--ease); }
+  .ss { flex-direction: row; gap: 16px; align-items: flex-start; }
+  .ss .date { width: 48px; flex-shrink: 0; display: flex; flex-direction: column; line-height: 1; }
+  .ss .date b { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+  .ss .date span { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; color: var(--ink2); margin-top: 6px; }
+  .ss .d { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; }
+  .ss .t { font-size: 16px; font-weight: 600; line-height: 1.3; }
+  .ss .m { font-size: 13px; color: var(--ink2); line-height: 1.5; }
+  .ss .due { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .ss.past .date b, .ss.past .t { color: var(--ink2); }
+  .ss:hover .t { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .search { margin-top: 18px; background: var(--sheet); border-radius: 12px; height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 16px; box-shadow: 0 1px 2px rgba(20,20,10,0.06); }
+  .search input { flex-grow: 1; border: 0; background: transparent; font-size: 15px; outline: none; }
+  .search input::placeholder { color: var(--ink3); }
+  .new { font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-left: 6px; }
+  .empty { padding: 30px 0; color: var(--ink3); }
+  .prep .pr { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; border-top: 1px solid var(--line); text-align: left; }
+  .prep .pr:first-of-type { border-top: 0; }
+  .prep .pr .t { font-weight: 500; flex-grow: 1; font-size: 14px; }
+  .prep .pr .s { font-size: 11px; color: var(--ink2); white-space: nowrap; }
+  .prep .pr.done .t { color: var(--ink3); text-decoration: line-through; text-decoration-color: var(--ink3); }
+  .day { display: flex; flex-direction: column; }
+  .day > div { display: flex; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .day > div:first-child { border-top: 0; }
+  .day .w { width: 80px; flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink2); padding-top: 4px; }
+  .day .x { color: var(--ink2); font-size: 13px; line-height: 1.5; }
+  .day .x b { color: var(--ink); font-weight: 600; display: block; font-size: 14px; }
+
+  /* Agenda home */
+  .row .num { font-size: 13px; font-weight: 800; color: var(--ink3); width: 30px; flex-shrink: 0; }
+  .row .l { flex-grow: 1; }
+  .wkrow { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding: 6px 0; }
+  .wkrow::-webkit-scrollbar { display: none; }
+  .wkb { display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left; }
+  .wkb .wd { width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+  .wkb .wd b { font-size: 16px; font-weight: 800; line-height: 1; }
+  .wkb .wd i { font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
+  .wkb .wd.bdx { background: var(--accent); border: 1px solid var(--ink); color: var(--ink); }
+  .wkb .wd.isx { background: var(--ink); color: #FFFFFF; }
+  .wkb .wd.rvx { background: var(--sheet); border: 1.5px dashed var(--ink); color: var(--ink); }
+  .wkb .wt { font-size: 12px; font-weight: 600; line-height: 1.3; max-width: 110px; }
+  .wkb:hover .wt { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .heroq { width: 36px; height: 36px; flex-shrink: 0; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--ink); }
+
+  /* Year calendar */
+  .ycal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; padding-top: 10px; }
+  .ym .yl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--ink2); margin-bottom: 5px; }
+  .yg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+  .yg i, .yg .yd { font-size: 9px; line-height: 1; display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; color: var(--ink2); font-style: normal; min-width: 0; }
+  .yg i.gone { color: #C9C8C0; }
+  .yg .yd { font-weight: 700; color: var(--ink); border-radius: 3px; cursor: pointer; }
+  .yd.bd { background: var(--accent); border: 1px solid var(--ink); }
+  .yd.is { background: var(--ink); color: #FFFFFF; }
+  .yd.rv { background: var(--sheet); border: 1.5px dashed var(--ink); }
+  .ykey { display: flex; gap: 14px; padding-top: 12px; font-size: 11px; color: var(--ink2); flex-wrap: wrap; }
+  .ykey span { display: flex; align-items: center; gap: 6px; }
+  .ykey .k { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .k.bd { background: var(--accent); border: 1px solid var(--ink); }
+  .k.is { background: var(--ink); }
+  .k.rv { border: 1.5px dashed var(--ink); background: var(--sheet); }
+
+  .brand { display: none; }
+  /* Pill nav */
+  .pill { position: absolute; left: 12px; right: 12px; bottom: 14px; background: var(--ink); border-radius: 18px; display: flex; padding: 6px; z-index: 4; transition: transform 460ms var(--ease), opacity 460ms var(--ease); box-shadow: 0 12px 30px rgba(20,20,10,0.22); }
+  .pill.pushed { transform: translateY(120%); opacity: 0; }
+  .pill .ind { position: absolute; top: 6px; bottom: 6px; left: 6px; width: 60px; background: var(--accent); border-radius: 12px; transition: transform 420ms var(--ease), width 420ms var(--ease); }
+  .tab { position: relative; z-index: 1; flex: 1; height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #B9B9B2; transition: flex-grow 420ms var(--ease), color 240ms; }
+  .tab svg { flex-shrink: 0; }
+  .tab .lb { font-size: 11px; font-weight: 600; white-space: nowrap; display: none; }
+  .tab.on { flex-grow: 2.1; color: var(--ink); }
+  .tab.on .lb { display: inline; }
+  .tab .dot { position: absolute; top: 12px; right: calc(50% - 14px); width: 6px; height: 6px; background: var(--accent); border-radius: 50%; border: 1px solid var(--ink); }
+  .tab.on .dot { display: none; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; background: linear-gradient(to bottom, rgba(237,236,230,0), var(--ground) 60%); pointer-events: none; z-index: 3; }
+
+  /* Layers: sheets that expand */
+  .layers { position: absolute; inset: 0; pointer-events: none; }
+  .layer { position: absolute; inset: 0; background: var(--ground); opacity: 0; transition: opacity 240ms ease; overflow-y: auto; overflow-x: hidden; pointer-events: auto; scrollbar-width: none; touch-action: pan-y; }
+  .layer::-webkit-scrollbar { display: none; }
+  .layer.in { opacity: 1; }
+  .layer.dragging { transition: none; }
+  .gexp { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: var(--sheet); border-radius: 10px; transform-origin: top left; transition: transform 460ms var(--ease), border-radius 460ms var(--ease), opacity 200ms ease; z-index: 6; box-shadow: var(--shadow-hi); pointer-events: none; }
+  .gexp.full { transform: none !important; border-radius: 0; }
+  .gexp.out { opacity: 0; }
+  .layer-top { display: flex; align-items: center; justify-content: space-between; padding: 18px 14px 0 10px; }
+  .back { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; font-size: 13px; font-weight: 500; color: var(--ink2); }
+  .back:hover { color: var(--ink); }
+  .layer .content { padding: 12px 22px 48px 22px; display: flex; flex-direction: column; }
+  .prose { display: flex; flex-direction: column; gap: 10px; color: var(--ink2); font-size: 14px; line-height: 1.6; }
+  .prose.ink { color: var(--ink); }
+  .kv { display: flex; flex-direction: column; }
+  .kv div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .kv div:first-child { border-top: 0; }
+  .kv div span:first-child { color: var(--ink2); }
+  .kv div span:last-child { font-weight: 500; text-align: right; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field label { font-weight: 500; font-size: 14px; }
+  .field textarea, .field input { width: 100%; border: 0; border-bottom: 1px solid var(--line2); background: transparent; padding: 10px 0; font-size: 15px; resize: none; line-height: 1.5; outline: none; border-radius: 0; }
+  .field textarea:focus, .field input:focus { border-bottom-color: var(--ink); box-shadow: 0 2px 0 var(--accent); }
+  .hint { font-size: 12px; color: var(--ink3); }
+  .seg3 { display: flex; border: 1px solid var(--ink); border-radius: 6px; overflow: hidden; }
+  .seg3 button { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--ink2); border-right: 1px solid var(--line2); transition: background 200ms, color 200ms; }
+  .seg3 button:last-child { border-right: 0; }
+  .seg3 button.on { background: var(--ink); color: #FFFFFF; font-weight: 600; }
+  .seg3 button.on.accent { background: var(--accent); color: var(--ink); }
+  .banner { padding: 10px 14px; border: 1px dashed var(--ink3); border-radius: 6px; font-size: 12px; color: var(--ink2); }
+  .stmt { display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .stmt:first-child { border-top: 0; }
+  .stmt .s { line-height: 1.5; font-size: 14px; }
+  .stmt .dots { display: flex; gap: 6px; align-items: center; }
+  .stmt .dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink); display: inline-block; }
+  .stmt .dots i.on { background: var(--ink); }
+  .stmt .dots span { font-size: 12px; color: var(--ink2); margin-left: 6px; }
+  .update { padding: 12px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+  .update:first-child { border-top: 0; }
+  .update .d { font-size: 11px; color: var(--ink3); }
+
+  /* Bottom sheet, toast */
+  .backdrop { position: absolute; inset: 0; background: rgba(10, 10, 10, 0.32); opacity: 0; transition: opacity 320ms ease; pointer-events: none; z-index: 7; }
+  .backdrop.on { opacity: 1; pointer-events: auto; }
+  .bsheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--sheet); border-radius: 20px 20px 0 0; padding: 12px 22px 34px 22px; transform: translateY(100%); visibility: hidden; transition: transform 420ms var(--ease), visibility 0s linear 420ms; box-shadow: 0 -20px 60px rgba(20, 20, 10, 0.14); z-index: 8; }
+  .bsheet.on { transform: translateY(0); visibility: visible; transition: transform 420ms var(--ease), visibility 0s; }
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line2); margin: 0 auto 14px auto; }
+  .toast { position: absolute; left: 22px; right: 22px; bottom: 90px; background: var(--ink); color: #F2F1EA; padding: 14px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; transform: translateY(16px); opacity: 0; transition: transform 360ms var(--ease-out), opacity 300ms ease; pointer-events: none; display: flex; gap: 12px; align-items: center; z-index: 9; box-shadow: var(--shadow-hi); }
+  .toast i { width: 8px; height: 8px; background: var(--accent); flex-shrink: 0; }
+  .toast.on { transform: translateY(0); opacity: 1; }
+
+  /* Gate: sign in, paused and not a member screens */
+  .gate { position: absolute; inset: 0; background: var(--ground); z-index: 12; overflow-y: auto; overflow-x: hidden; display: none; }
+  .gate.on { display: block; }
+  .gate .inner { max-width: 440px; margin: 0 auto; min-height: 100%; box-sizing: border-box; padding: 48px 22px; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+  .gate .h1 { font-size: 30px; letter-spacing: -0.5px; }
+  .gate .mark { display: flex; align-items: center; gap: 12px; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; color: var(--ink2); }
+  .gate .err { font-size: 13px; color: var(--ink); font-weight: 500; background: var(--sheet); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; box-shadow: var(--shadow); }
+
+
+  /* Laptop and desktop */
+  @media (min-width: 900px) {
+    .stage { padding: 0; }
+    .phone { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; }
+    .views { left: 232px; }
+    .view { padding-bottom: 48px; }
+    .fade { display: none; }
+    .pad, .top { max-width: 1100px; margin-left: auto; margin-right: auto; padding-left: 48px; padding-right: 48px; }
+    .top { padding-top: 34px; }
+    .h1 { font-size: 30px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); column-gap: 24px; align-items: start; }
+    .stack { gap: 16px; padding-top: 24px; }
+    .stack.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    .stack.two > .add, .stack.two > .strip, .stack.two > .empty { grid-column: 1 / -1; }
+    .gb .quote { padding-top: 6px; }
+    .bi .btn { width: max-content; padding: 0 28px; }
+    #docs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    .search { max-width: 480px; }
+    .seg { max-width: 380px; }
+    .ycal { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pill { left: 0; top: 0; bottom: 0; right: auto; width: 232px; border-radius: 0; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; padding: 24px 14px; box-shadow: none; }
+    .pill.pushed { transform: none; opacity: 1; }
+    .pill .ind { display: none; }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 4px 14px 26px 14px; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; color: #8A8A84; }
+    .tab { flex: none; height: 46px; justify-content: flex-start; padding: 0 14px; gap: 12px; border-radius: 12px; }
+    .tab .lb { display: inline; }
+    .tab.on { flex-grow: 0; background: var(--accent); color: var(--ink); }
+    .tab .dot { position: static; margin-left: auto; }
+    .tab.on .dot { display: none; }
+    .layers { left: 232px; }
+    .layer-top { max-width: 760px; margin: 0 auto; width: 100%; padding-top: 26px; }
+    .layer .content { max-width: 760px; margin: 0 auto; width: 100%; padding-left: 32px; padding-right: 32px; }
+    .bsheet { left: 50%; right: auto; width: 480px; margin-left: -140px; border-radius: 16px 16px 0 0; }
+    .toast { left: auto; right: 32px; width: 380px; bottom: 32px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
+  }
+</style>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen" id="screen">
+      <div class="views" id="views">
+        <section class="view" data-view="home"></section>
+        <section class="view" data-view="commitments"></section>
+        <section class="view" data-view="sessions"></section>
+        <section class="view" data-view="library"></section>
+      </div>
+      <div class="fade"></div>
+      <nav class="pill" id="pill" aria-label="Sections">
+        <span class="ind" id="tabInd"></span>
+        <div class="brand"><svg width="34" height="17" viewBox="0 0 48 24" fill="none" aria-hidden="true"><path d="M24 12 C28 3.5, 41.5 4, 41.5 12 C41.5 20, 28 20.5, 24 12" stroke="#FBF000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M24 12 C20 3.5, 6.5 4, 6.5 12 C6.5 20, 20 20.5, 24 12" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>THE BOARDROOM</span></div>
+        <button class="tab" data-tab="home" aria-label="Home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 9v11h14V9"></path></svg><span class="lb">Home</span></button>
+        <button class="tab" data-tab="commitments" aria-label="Commitments"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"></path></svg><span class="lb">Commitments</span></button>
+        <button class="tab" data-tab="sessions" aria-label="Sessions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg><span class="lb">Sessions</span><span class="dot" id="sessDot" hidden></span></button>
+        <button class="tab" data-tab="library" aria-label="Library"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"></path><path d="M9 7h6"></path></svg><span class="lb">Library</span></button>
+      </nav>
+      <div class="layers" id="layers"></div>
+      <div class="backdrop" id="backdrop"></div>
+      <div class="bsheet" id="bsheet" role="dialog" aria-modal="true" aria-label="Add a commitment"></div>
+      <div class="toast" id="toast" role="status"><i></i><span id="toastText"></span></div>
+      <div class="gate" id="gate"></div>
+    </div>
+  </div>
+</div>
+<script>(function(){"use strict";
+  // ---------- Supabase ----------
+  // Anon key only. It is public by design; row level security does the protecting.
+  // NEVER put the service role key, Resend key or Stripe key in this file.
+  const SUPABASE_URL = 'https://tzbjikrnvphbbwfxjxdv.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6Ymppa3JudnBoYmJ3ZnhqeGR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTA3MzEsImV4cCI6MjA5NjA2NjczMX0.LhotxkMIA3q_bo9IvnZakH91axrEVhOf_4aw2Kmh6D4';
+  let sb = null;
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (err) { sb = null; }
+  let me = null; // br_members id for the signed in member; null for team viewers
+  let authEmail = '';
+  const isTeam = (em) => (em || '').toLowerCase().endsWith('@businesschangegroup.com');
+  // TEAM: Joe's WhatsApp number, country code then digits only, e.g. 447700900000.
+  // The Message Joe buttons on Home and the member page appear once this is set.
+  const JOE_WHATSAPP = '447711941580';
+
+  let member = { first: '', name: '', company: '', since: '', joined: '', email: '' };
+
+  const state = {
+    tab: 'home', filter: 'open', segment: 'upcoming', query: '', libseg: 'ip',
+    paused: false,
+    challengeSent: false, calendar: {}, prepDone: {}, notes: {},
+    commitments: [],
+    sessions: [],
+    docs: [],
+    dannyLine: null,
+    updates: []
+  };
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const chevron = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A9A93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
+  const backIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>';
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
+
+  function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+  function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function parse(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function daysUntil(s) { return Math.round((parse(s) - today()) / 86400000); }
+  function longDate(s) { const d = parse(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+  function fullDate(s) { const d = parse(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function ordinal(s) { const n = parse(s).getDate(); const sfx = ['th','st','nd','rd'], v = n % 100; return n + (sfx[(v - 20) % 10] || sfx[v] || sfx[0]); }
+  function weekday(s) { return DAYS[parse(s).getDay()]; }
+  function mon3(s) { return MONTHS[parse(s).getMonth()].slice(0, 3).toUpperCase(); }
+  function dayNum(s) { return String(parse(s).getDate()); }
+  function inWords(s) { const n = daysUntil(s); if (n < 0) return 'was due ' + longDate(s); if (n === 0) return 'due today'; if (n === 1) return 'due tomorrow'; if (n < 14) return 'due in ' + n + ' days'; return 'due ' + longDate(s); }
+  function byWords(s) { const n = daysUntil(s); if (n < 0) return 'now, it was due ' + longDate(s); if (n === 0) return 'today'; if (n === 1) return 'tomorrow'; if (n < 7) return 'by ' + weekday(s); return 'by ' + longDate(s); }
+  function awayWords(s) { const n = daysUntil(s); if (n < 0) return 'was ' + longDate(s); if (n === 0) return 'is today'; if (n === 1) return 'is tomorrow'; if (n < 21) return 'is in ' + n + ' days'; return 'is on ' + longDate(s); }
+  function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+  let toastTimer;
+  function toast(msg) { const t = $('#toast'); $('#toastText').textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2400); }
+  function stagger(root) { $$('.reveal', root).forEach((el, i) => el.style.setProperty('--i', String(Math.min(i, 9)))); }
+  function addDays(s, n) { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  function monthYear(s) { const d = parse(s); return MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+  function agoWords(ts) { const d = new Date(ts); d.setHours(0, 0, 0, 0); const n = Math.round((today() - d) / 86400000); if (n <= 0) return 'Today'; if (n === 1) return 'Yesterday'; if (n < 7) return n + ' days ago'; if (n < 28) { const w = Math.round(n / 7); return w + (w === 1 ? ' week ago' : ' weeks ago'); } return longDate(iso(d)); }
+  function initials() { return (member.name || '').split(' ').map((w) => w.charAt(0)).join('').slice(0, 2).toUpperCase() || 'ME'; }
+
+  function dueItems() {
+    const out = [];
+    state.sessions.filter((s) => s.upcoming).forEach((s) => (s.prep || []).forEach((p) => {
+      if (!p.due || p.note) return;
+      const done = p.id === 'challenge' ? state.challengeSent : !!state.prepDone[p.id];
+      if (!done) out.push({ kind: 'prep', id: p.id, t: p.t, due: p.due, session: s, push: p.push || ('session:' + s.id) });
+    }));
+    state.commitments.filter((c) => c.status === 'open' && c.due).forEach((c) => out.push({ kind: 'commitment', id: c.id, t: c.text, due: c.due, push: 'commitment:' + c.id }));
+    out.sort((a, b) => parse(a.due) - parse(b.due));
+    return out;
+  }
+  function stripHTML() {
+    const d = dueItems().filter((x) => x.kind === 'prep')[0];
+    if (!d) return '';
+    return '<div class="pad reveal"><button class="strip" data-push="' + d.push + '"><span class="sq"></span><span class="grow">' + esc(d.t) + ', ' + esc(inWords(d.due)) + '</span><span class="go">Start</span></button></div>';
+  }
+  function setDot() { $('#sessDot').hidden = !dueItems().some((x) => x.kind === 'prep'); }
+
+  // ---------- Views ----------
+  const views = {}; $$('.view').forEach((v) => { views[v.dataset.view] = v; });
+  const screen = $('#screen');
+  const layersEl = $('#layers');
+
+  function sheet(inner, o) {
+    o = o || {};
+    const tag = o.push ? 'button' : 'div';
+    return '<' + tag + ' class="sheet reveal' + (o.hi ? ' hi' : '') + (o.dark ? ' dark' : '') + (o.list ? ' list' : '') + (o.cls ? ' ' + o.cls : '') + '"' + (o.push ? ' data-push="' + o.push + '"' : '') + (o.style ? ' style="' + o.style + '"' : '') + '>' + (o.tab ? '<i class="ixt"></i>' : '') + inner + '</' + tag + '>';
+  }
+  function checkBtn(c) {
+    const on = c.status === 'done';
+    return '<button class="check' + (on ? ' on' : '') + (c.status === 'parked' ? ' parked' : '') + '" data-tick="' + c.id + '" aria-label="' + (on ? 'Delivered' : 'Mark delivered') + '"><span class="box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l6 6L20 6"></path></svg></span></button>';
+  }
+  function commitSheet(c, tab) {
+    let meta;
+    if (c.status === 'done') meta = 'Delivered ' + (c.doneOn ? esc(longDate(c.doneOn)) : 'today');
+    else if (c.status === 'parked') meta = esc(c.from) + ', parked';
+    else meta = esc(c.from) + (c.due ? ' &middot; <b>' + esc(inWords(c.due)) + '</b>' : '');
+    return '<div class="sheet reveal cs' + (c.status === 'done' ? ' dim' : '') + (tab ? ' hi' : '') + '" data-item="' + c.id + '">' + (tab ? '<i class="ixt"></i>' : '') + checkBtn(c) +
+      '<button class="body" data-push="commitment:' + c.id + '"><span class="text">' + esc(c.text) + (c.status === 'parked' ? '<span class="tag">Parked</span>' : '') + '</span><span class="meta">' + meta + '</span></button></div>';
+  }
+  function rowBtn(push, title, meta, extra) {
+    return '<button class="row" data-push="' + push + '"><span class="l"><b>' + title + (extra || '') + '</b>' + (meta ? '<span>' + meta + '</span>' : '') + '</span>' + chevron + '</button>';
+  }
+  function joeRow() {
+    if (!JOE_WHATSAPP) return '';
+    return '<a class="row" style="text-decoration:none; color:inherit" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener"><span class="l"><b>Message Joe</b><span>On WhatsApp, any time</span></span>' + chevron + '</a>';
+  }
+  function topBar(eyebrow) { return '<div class="top"><div class="eyebrow">' + esc(eyebrow) + '</div><button class="avatar" data-push="you" aria-label="You">' + esc(initials()) + '</button></div>'; }
+
+  function briefItems() {
+    const next = state.sessions.find((s) => s.upcoming);
+    const items = [];
+    if (next) dueItems().filter((x) => x.kind === 'prep' && x.session.id === next.id).forEach((p) => items.push({ n: 'Due ' + byWords(p.due).replace(/^by /, ''), t: 'Send your ' + p.t + '.', w: 'The room works it on the afternoon of the ' + ordinal(next.date) + '. Five minutes, in your own words.', action: { label: 'Start now', push: p.push, primary: true } }));
+    const cDue = state.commitments.filter((c) => c.status === 'open' && c.due && daysUntil(c.due) <= 21);
+    if (cDue.length) {
+      const sameDay = cDue.every((c) => c.due === cDue[0].due);
+      const later = state.sessions.filter((s) => s.upcoming && (!next || s.id !== next.id))[0];
+      const word = WORDS[Math.min(cDue.length, 6)];
+      const j = cDue.map((c) => c.text.charAt(0).toLowerCase() + c.text.slice(1)).join(', and ');
+      items.push({ n: sameDay ? 'Due the ' + ordinal(cDue[0].due) : 'Due this month', t: (cDue.length === 1 ? 'One commitment falls due.' : word.charAt(0).toUpperCase() + word.slice(1) + ' commitments fall due.'), w: j.charAt(0).toUpperCase() + j.slice(1) + (later ? '. You will be asked about ' + (cDue.length === 1 ? 'it' : 'them') + ' on the ' + ordinal(later.date) + '.' : '.'), action: { label: 'Open commitments', push: 'tab:commitments' } });
+    }
+    const arriving = next ? (next.prep || []).find((p) => p.arrives && daysUntil(p.arrives) >= 0) : null;
+    if (arriving) items.push({ n: 'Arrives ' + (daysUntil(arriving.arrives) < 7 ? weekday(arriving.arrives) : longDate(arriving.arrives)), t: 'The session pack.', w: 'Read it before ' + weekday(next.date) + '.' + (next.theme ? ' The expert morning is on ' + next.theme.toLowerCase() + '.' : ''), action: { label: 'About the day', push: 'session:' + next.id } });
+    return items.slice(0, 3);
+  }
+
+  function nextMonthsHTML() {
+    const entries = state.sessions.filter((s) => s.upcoming).map((s) => ({ date: s.date, t: s.title, kind: s.type === 'Boardroom Day' ? 'bdx' : 'isx', push: 'session:' + s.id }));
+    entries.sort((a, b) => parse(a.date) - parse(b.date));
+    const four = entries.slice(0, 4);
+    return '<div class="reveal" style="display:flex; flex-direction:column; gap:10px"><span class="label">Your next three months</span><div class="wkrow">' +
+      four.map((e) => '<button class="wkb" data-push="' + e.push + '"><span class="wd ' + e.kind + '"><b>' + esc(dayNum(e.date)) + '</b><i>' + esc(mon3(e.date)) + '</i></span><span class="wt">' + esc(e.t) + '</span></button>').join('') +
+      '<button class="quiet-link" data-push="tab:sessions" style="flex-shrink:0; border-bottom:2px solid var(--accent); min-height:0; padding-bottom:2px">The whole year</button></div></div>';
+  }
+
+  function renderHome() {
+    const next = state.sessions.find((s) => s.upcoming);
+    const items = briefItems();
+    const open = state.commitments.filter((c) => c.status === 'open').length;
+    const anyDue = items.length > 0;
+    const count = anyDue ? items.length : 0;
+    const headline = !next ? member.first + ', you’re all clear for now.' : count ? member.first + ', ' + WORDS[count] + (count === 1 ? ' thing' : ' things') + ' before the ' + ordinal(next.date) + '.' : member.first + ', you’re clear until the ' + ordinal(next.date) + '.';
+    const td = iso(today());
+    views.home.innerHTML =
+      '<div class="top"><div class="eyebrow">' + esc(weekday(td)) + ' ' + esc(longDate(td)) + '</div><button class="avatar" data-push="you" aria-label="You">' + esc(initials()) + '</button></div>' +
+      '<div class="pad head reveal"><div class="h1">' + esc(headline) + '</div><div class="sub">' + greeting() + '. Your brief, composed this morning.</div></div>' +
+      '<div class="pad grid">' +
+      '<div class="stack ga">' +
+      (state.paused ? sheet('<div style="font-size:14px; line-height:1.6; font-weight:500">The Boardroom is quiet just now. Everything here is safe. Message Joe on WhatsApp if you need anything.</div>', { hi: true, tab: true }) : '') +
+      (anyDue && items.length ? sheet('<div style="display:flex; align-items:baseline; gap:20px"><span class="heroq">01</span>' +
+        '<div style="display:flex; flex-direction:column; gap:8px; flex-grow:1"><div class="label" style="color:var(--accent)">' + esc(items[0].n.toUpperCase()) + '</div>' +
+        '<div style="font-size:22px; font-weight:600; letter-spacing:-0.3px; line-height:1.25; color:#FFFFFF">' + esc(items[0].t) + '</div>' +
+        '<div style="font-size:13px; color:#B9B9B4; line-height:1.5">' + esc(items[0].w) + '</div>' +
+        (items[0].action ? '<div style="margin-top:6px"><button class="btn accent" style="width:max-content; padding:0 28px" data-push="' + items[0].action.push + '">' + esc(items[0].action.label) + '</button></div>' : '') +
+        '</div></div>', { dark: true, hi: true, tab: true }) : '') +
+      (anyDue && items.length > 1 ? sheet(items.slice(1).map(function (it, i) {
+        return '<button class="row" data-push="' + (it.action ? it.action.push : 'tab:sessions') + '"><span class="num">0' + (i + 2) + '</span><span class="l"><b>' + esc(it.t) + '</b><span>' + esc(it.n) + '</span></span>' + chevron + '</button>';
+      }).join(''), { list: true }) : '') +
+      (!anyDue ? sheet('<div class="label">Nothing due</div>' +
+        '<div style="font-size:20px; font-weight:600; letter-spacing:-0.3px; line-height:1.35; max-width:24em">' + (next ? 'You are clear until your next session on ' + esc(weekday(next.date)) + ' ' + esc(longDate(next.date)) + '.' : 'You are clear for now.') + '</div>' +
+        (next ? '<button class="quiet-link" data-push="session:' + next.id + '" style="border-bottom:2px solid var(--accent); min-height:0; padding-bottom:2px; width:max-content; margin-top:6px">About the day</button>' : ''), { hi: true, tab: true }) : '') +
+      nextMonthsHTML() +
+      (state.dannyLine ? '<div class="quote reveal"><i></i><div><div class="label" style="margin-bottom:4px">From Danny, ' + esc(longDate(state.dannyLine.d)) + '</div><div class="q">“' + esc(state.dannyLine.t) + '”</div></div></div>' : '') +
+      '</div>' +
+      '<div class="stack gb">' +
+      sheet('<div class="label" style="padding:12px 0 4px 0">Go to</div>' +
+        (next ? rowBtn('session:' + next.id, 'Next session', esc(weekday(next.date)) + ' ' + esc(longDate(next.date))) : '') +
+        rowBtn('tab:commitments', 'Commitments', open + ' open') +
+        rowBtn('tab:library', 'Library', 'Frameworks and materials') +
+        rowBtn('updates', 'From TUF', state.updates.length ? esc(state.updates[0].t) : '') +
+        joeRow(), { list: true }) + '</div></div>' +
+      '<div class="pad foot">The Ultimate Founder Boardroom &middot; <button class="quiet-link" data-welcome style="font-size:12px; min-height:0">How this app works</button></div>';
+  }
+
+  function renderCommitments() {
+    const all = state.commitments;
+    const done = all.filter((c) => c.status === 'done').length; const open = all.filter((c) => c.status === 'open');
+    const dueSoon = open.filter((c) => c.due && daysUntil(c.due) <= 7);
+    const list = all.filter((c) => state.filter === 'all' ? true : state.filter === 'done' ? c.status === 'done' : c.status !== 'done');
+    const earliest = open.filter((c) => c.due).sort((a, b) => parse(a.due) - parse(b.due))[0];
+    const headline = open.length === 0 ? 'Nothing open. The room will fix that.' : WORDS[Math.min(open.length, 6)].charAt(0).toUpperCase() + WORDS[Math.min(open.length, 6)].slice(1) + ' open' + (dueSoon.length ? ', ' + WORDS[Math.min(dueSoon.length, 6)] + ' due this week.' : '.');
+    views.commitments.innerHTML = topBar('Commitments') +
+      '<div class="pad">' + stripHTML() + '</div>' +
+      '<div class="pad head reveal"><div class="h1">' + esc(headline) + '</div><div class="sub">The standard is held by the room. ' + done + ' of ' + all.length + ' delivered since joining.</div></div>' +
+      '<div class="pad chips reveal">' + ['open', 'done', 'all'].map((f) => '<button class="chip' + (state.filter === f ? ' on' : '') + '" data-filter="' + f + '">' + (f === 'done' ? (done ? 'Delivered ' + done : 'Delivered') : f[0].toUpperCase() + f.slice(1)) + '</button>').join('') + '</div>' +
+      '<div class="pad stack two" id="clist" style="padding-top:14px">' + (list.length ? list.map((c) => commitSheet(c, earliest && c.id === earliest.id)).join('') : '<div class="empty">Nothing here yet.</div>') +
+      '<button class="add reveal" data-sheet="add"><span class="plus"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>Add a commitment</button></div>';
+  }
+
+  function docRow(d) { return rowBtn('doc:' + d.id, esc(d.title), esc(d.meta), d.isNew ? '<span class="new">NEW</span>' : ''); }
+  function renderLibrary() {
+    const ip = state.libseg !== 'sess';
+    const q = state.query.trim().toLowerCase();
+    const match = (d) => !q || (d.title + ' ' + d.cat + ' ' + d.about).toLowerCase().includes(q);
+    const start = state.docs.find((d) => d.start) || state.docs.find((d) => d.cat === 'Membership');
+    const ipHTML = () => {
+      const cats = ['Frameworks', 'Membership'];
+      const parts = cats.map((cat) => {
+        const inCat = state.docs.filter((d) => d.cat === cat && match(d));
+        return inCat.length ? sheet('<div class="label" style="padding:12px 0 6px 0">' + esc(cat) + '</div>' + inCat.map(docRow).join(''), { list: true }) : '';
+      }).join('');
+      return parts || '<div class="empty">Nothing matches that. Try a shorter word.</div>';
+    };
+    const sessHTML = () => {
+      const past = state.sessions.filter((s) => !s.upcoming && (s.materials || []).length);
+      const parts = past.map((s) => {
+        const mats = (s.materials || []).map((m) => state.docs.find((d) => d.id === m)).filter((d) => d && match(d));
+        return mats.length ? sheet('<div class="label" style="padding:12px 0 6px 0">' + esc(s.title) + ', ' + esc(s.long) + '</div>' + mats.map(docRow).join(''), { list: true }) : '';
+      }).join('');
+      const loose = state.docs.filter((d) => d.cat === 'Session materials' && match(d) && !state.sessions.some((s) => (s.materials || []).indexOf(d.id) >= 0));
+      const looseHTML = loose.length ? sheet('<div class="label" style="padding:12px 0 6px 0">Other session documents</div>' + loose.map(docRow).join(''), { list: true }) : '';
+      return (parts + looseHTML) || '<div class="empty">' + (q ? 'Nothing matches that. Try a shorter word.' : 'Packs and decks land here within 48 hours of each session.') + '</div>';
+    };
+    views.library.innerHTML = topBar('Library') +
+      '<div class="pad">' + stripHTML() + '</div>' +
+      '<div class="pad head reveal"><div class="h1">' + (ip ? 'The thinking, in one place.' : 'Everything from your sessions.') + '</div><div class="sub">' + (ip ? 'The TUF frameworks and guides, always current.' : 'Packs and decks from every session, newest first.') + '</div></div>' +
+      '<div class="pad"><div class="seg reveal"><span class="ind" style="transform:translateX(' + (ip ? 0 : 100) + '%)"></span><button data-libseg="ip" class="' + (ip ? 'on' : '') + '">TUF IP</button><button data-libseg="sess" class="' + (!ip ? 'on' : '') + '">Session documents</button></div></div>' +
+      '<div class="pad"><div class="search reveal" style="margin-top:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B66" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input id="q" type="search" placeholder="Search the library" value="' + esc(state.query) + '" autocomplete="off"></div></div>' +
+      '<div class="pad stack" style="padding-top:12px">' + (ip && !state.query && start ? sheet('<div class="label">Start here</div><div class="h3">' + esc(start.title) + '</div><div class="sub">' + esc(start.meta) + '. Read once, refer to often.</div>', { push: 'doc:' + start.id, tab: true, hi: true }) : '') +
+      '<div id="docs" style="display:flex; flex-direction:column; gap:12px">' + (ip ? ipHTML() : sessHTML()) + '</div></div>';
+    $('#q', views.library).addEventListener('input', (e) => { state.query = e.target.value; $('#docs', views.library).innerHTML = ip ? ipHTML() : sessHTML(); });
+  }
+
+  // ---------- The year, and real calendar invites ----------
+  function sessionTimes(sess) {
+    const bd = sess.type === 'Boardroom Day';
+    return bd ? ['090000', '163000'] : ['093000', '113000'];
+  }
+  function icsStamp(dateStr, hms) { return dateStr.replace(/-/g, '') + 'T' + hms; }
+  function icsFor(sess) {
+    const tms = sessionTimes(sess);
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//The Ultimate Founder//Boardroom//EN', 'BEGIN:VEVENT',
+      'UID:' + sess.id + '@theultimatefounder', 'DTSTART:' + icsStamp(sess.date, tms[0]), 'DTEND:' + icsStamp(sess.date, tms[1]),
+      'SUMMARY:' + sess.title + ' (The Boardroom)', 'LOCATION:' + (sess.where || ''), 'DESCRIPTION:' + (sess.theme || sess.type),
+      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  }
+  function gcalFor(sess) {
+    const tms = sessionTimes(sess);
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(sess.title + ' (The Boardroom)') +
+      '&dates=' + icsStamp(sess.date, tms[0]) + '/' + icsStamp(sess.date, tms[1]) +
+      '&details=' + encodeURIComponent(sess.theme || sess.type) + '&location=' + encodeURIComponent(sess.where || '');
+  }
+  function downloadIcs(sess) {
+    let framed = false;
+    try { framed = window !== window.top; } catch (err) { framed = true; }
+    if (framed) { toast('In the live app this downloads the invite for Apple or Outlook. In this preview, use Google Calendar.'); return; }
+    try {
+      const a = document.createElement('a');
+      a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsFor(sess));
+      a.download = sess.title.replace(/ /g, '-') + '.ics'; document.body.appendChild(a); a.click(); a.remove();
+    } catch (err) {}
+    toast('Invite created. Open it and it lands in your calendar.');
+  }
+  function yearCalHTML() {
+    const sessByDate = {};
+    state.sessions.forEach((x) => { sessByDate[x.date] = x; });
+    const start = parse(member.joined || (state.sessions.length ? state.sessions[0].date : iso(today()))); const months = [];
+    for (let k = 0; k < 12; k++) months.push(new Date(start.getFullYear(), start.getMonth() + k, 1));
+    const tnow = today();
+    return '<div class="ycal">' + months.map((m0) => {
+      const y = m0.getFullYear(), mo = m0.getMonth();
+      const firstDow = (m0.getDay() + 6) % 7; const dim = new Date(y, mo + 1, 0).getDate();
+      let cells = '';
+      for (let b = 0; b < firstDow; b++) cells += '<i></i>';
+      for (let d = 1; d <= dim; d++) {
+        const ds = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const sess = sessByDate[ds];
+        if (sess) cells += '<button class="yd ' + (sess.type === 'Boardroom Day' ? 'bd' : 'is') + '" data-push="session:' + sess.id + '" aria-label="' + esc(sess.title) + ', ' + ds + '">' + d + '</button>';
+        else cells += '<i class="' + (parse(ds) < tnow ? 'gone' : '') + '">' + d + '</i>';
+      }
+      return '<div class="ym"><div class="yl">' + MONTHS[mo].slice(0, 3).toUpperCase() + (mo === 0 || (y > start.getFullYear() && mo === start.getMonth()) ? ' ' + String(y).slice(2) : '') + '</div><div class="yg">' + cells + '</div></div>';
+    }).join('') + '</div>' +
+    '<div class="ykey"><span><i class="k bd"></i>Boardroom Day</span><span><i class="k is"></i>Implementation</span></div>';
+  }
+
+  function renderSessions() {
+    const up = state.segment === 'upcoming'; const list = state.sessions.filter((s) => s.upcoming === up);
+    const next = state.sessions.find((s) => s.upcoming);
+    let hero = '';
+    if (next) {
+      const pd = (next.prep || []).find((x) => x.due && !x.note && !(x.id === 'challenge' ? state.challengeSent : state.prepDone[x.id]));
+      const pn = !pd ? (next.prep || []).find((x) => x.note) : null;
+      const prepLine = pd ? '<span class="due"><span class="sq"></span>' + esc(pd.t) + ', ' + esc(inWords(pd.due)) + '</span>'
+        : (pn ? '<span class="due"><span class="sq off"></span>' + esc(pn.t) + ' ' + esc(pn.note.charAt(0).toLowerCase() + pn.note.slice(1)) + '</span>' : '');
+      hero = sheet('<div class="label">Next session &middot; ' + esc(awayWords(next.date).replace(/^is /, '')) + '</div>' +
+        '<div class="ss" style="display:flex; margin-top:4px"><span class="date"><b>' + esc(next.day) + '</b><span>' + esc(next.mon) + '</span></span>' +
+        '<span class="d"><span class="t">' + esc(next.title) + '</span><span class="m">' + esc(weekday(next.date)) + ' ' + esc(next.long) + ', ' + esc(next.time) + '. ' + esc(next.where) + '.</span>' + prepLine + '</span></div>' +
+        '<div style="display:flex; gap:10px; margin-top:10px"><button class="btn" style="flex:1" data-push="session:' + next.id + '">About the day</button><a class="btn ghost" style="flex:1; text-decoration:none" href="' + gcalFor(next) + '" target="_blank" rel="noopener" data-caltrack="' + next.id + '">Add to calendar</a></div>', { hi: true, tab: true });
+    }
+    views.sessions.innerHTML = topBar('Sessions') +
+      '<div class="pad head reveal" style="padding-top:20px"><div class="h1">Twelve months, in your diary.</div><div class="sub">One touchpoint a month, all year. Tap a marked day to open it.</div></div>' +
+      '<div class="pad stack" style="padding-top:14px">' + hero + sheet('<div class="label">Your year</div>' + yearCalHTML()) + '</div>' +
+      '<div class="pad"><div class="seg reveal"><span class="ind" style="transform:translateX(' + (up ? 0 : 100) + '%)"></span><button data-seg="upcoming" class="' + (up ? 'on' : '') + '">Upcoming</button><button data-seg="past" class="' + (!up ? 'on' : '') + '">Past</button></div></div>' +
+      '<div class="pad stack two" style="padding-top:14px">' + list.map((s, i) => {
+        const prepDue = up ? (s.prep || []).find((p) => p.due && !p.note && !(p.id === 'challenge' ? state.challengeSent : state.prepDone[p.id])) : null;
+        const prepNext = up && !prepDue ? (s.prep || []).find((p) => p.note) : null;
+        const hot = !!prepDue && daysUntil(prepDue.due) <= 10;
+        return sheet('<span class="date"><b>' + esc(s.day) + '</b><span>' + esc(s.mon) + '</span></span><span class="d"><span class="t">' + esc(s.title) + '</span><span class="m">' + esc(s.type) + (s.theme ? '. ' + esc(s.theme) : '') + (s.where && s.where !== 'In person' ? '. ' + esc(s.where) + '.' : '.') + '</span>' +
+          (prepDue ? '<span class="due"><span class="sq"></span>' + esc(prepDue.t) + ', ' + esc(inWords(prepDue.due)) + '</span>' : '') +
+          (prepNext ? '<span class="m">' + esc(prepNext.t) + ' ' + esc(prepNext.note.charAt(0).toLowerCase() + prepNext.note.slice(1)) + '</span>' : '') +
+          (!up && s.agreed ? '<span class="m">' + s.agreed + (s.agreed === 1 ? ' commitment' : ' commitments') + ' agreed</span>' : '') + '</span>', { push: 'session:' + s.id, cls: 'ss' + (up ? '' : ' past'), tab: hot, hi: hot });
+      }).join('') + '</div>';
+  }
+
+  const renderers = { home: renderHome, commitments: renderCommitments, library: renderLibrary, sessions: renderSessions };
+
+  function moveTabInd() {
+    const on = $('.tab.on', $('#pill')); if (!on) return;
+    const ind = $('#tabInd'); ind.style.width = on.offsetWidth + 'px'; ind.style.transform = 'translateX(' + (on.offsetLeft - 6) + 'px)';
+  }
+  function settleInd() { moveTabInd(); setTimeout(moveTabInd, 60); setTimeout(moveTabInd, 200); setTimeout(moveTabInd, 440); }
+  function showTab(name, first) {
+    const prev = state.tab; state.tab = name;
+    $$('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === name));
+    settleInd(); setDot(); renderers[name]();
+    const nv = views[name];
+    if (first) { nv.classList.add('on'); return; }
+    if (prev === name) { nv.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const pv = views[prev]; pv.classList.remove('enter'); pv.classList.add('exit');
+    nv.classList.add('on', 'enter'); nv.scrollTop = 0;
+    setTimeout(() => pv.classList.remove('on', 'exit'), 170); setTimeout(() => nv.classList.remove('enter'), 320);
+  }
+
+  // ---------- Layers that expand from a sheet ----------
+  const layers = [];
+  function rectOf(el) { const sr = layersEl.getBoundingClientRect(); const r = el.getBoundingClientRect(); return { left: r.left - sr.left, top: r.top - sr.top, width: r.width, height: r.height }; }
+  function ghostAt(rect) {
+    const g = document.createElement('div'); g.className = 'gexp';
+    const W = layersEl.clientWidth, H = layersEl.clientHeight;
+    g.style.transform = 'translate(' + rect.left + 'px, ' + rect.top + 'px) scale(' + (rect.width / W) + ', ' + (rect.height / H) + ')';
+    layersEl.appendChild(g); return g;
+  }
+  function push(kind, originEl) {
+    if (kind.indexOf('tab:') === 0) { while (layers.length) pop(true); showTab(kind.slice(4)); return; }
+    const origin = originEl ? (originEl.closest('.sheet') || originEl) : null;
+    const rect = origin ? rectOf(origin) : { left: 22, top: layersEl.clientHeight * 0.6, width: layersEl.clientWidth - 44, height: 120 };
+    const el = document.createElement('div'); el.className = 'layer'; el.innerHTML = layerHTML(kind); el.dataset.kind = kind; el._origin = origin; el._rect = rect;
+    $('#layers').appendChild(el); layers.push(el); stagger(el);
+    const g = ghostAt(rect);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      g.classList.add('full');
+      if (layers.length === 1) { $('#views').classList.add('pushed'); $('#pill').classList.add('pushed'); }
+      else { const under = layers[layers.length - 2]; under.style.transform = 'scale(0.96)'; under.style.opacity = '0.55'; }
+    }));
+    setTimeout(() => { el.classList.add('in'); }, reduced ? 0 : 300);
+    setTimeout(() => { g.remove(); }, reduced ? 10 : 520);
+    bindDrag(el);
+  }
+  function pop(silent) {
+    const el = layers.pop(); if (!el) return;
+    el.classList.remove('dragging'); el.style.transform = '';
+    const origin = el._origin && el._origin.isConnected ? el._origin : null;
+    const rect = origin ? rectOf(origin) : el._rect;
+    const g = ghostAt(rect); g.classList.add('full');
+    requestAnimationFrame(() => requestAnimationFrame(() => { g.classList.remove('full'); el.classList.remove('in'); }));
+    setTimeout(() => { g.classList.add('out'); }, reduced ? 10 : 360);
+    setTimeout(() => { g.remove(); el.remove(); }, reduced ? 20 : 560);
+    if (!layers.length) { $('#views').classList.remove('pushed'); $('#pill').classList.remove('pushed'); }
+    else { const under = layers[layers.length - 1]; under.style.transform = ''; under.style.opacity = ''; refreshLayer(under); }
+    if (!silent) { renderers[state.tab](); setDot(); settleInd(); }
+  }
+  function refreshLayer(el) { const kind = el.dataset.kind; if (!kind) return; const y = el.scrollTop; el.innerHTML = layerHTML(kind); el.scrollTop = y; }
+  function bindDrag(el) {
+    let startX = 0, dx = 0, active = false, w = 0;
+    el.addEventListener('pointerdown', (e) => { if (e.clientX - el.getBoundingClientRect().left > 32) return; active = true; startX = e.clientX; dx = 0; w = el.offsetWidth; el.setPointerCapture(e.pointerId); el.classList.add('dragging'); });
+    el.addEventListener('pointermove', (e) => { if (!active) return; dx = Math.max(0, e.clientX - startX); el.style.transform = 'translateX(' + dx + 'px)'; el.style.opacity = String(1 - dx / w * 0.6); });
+    const end = () => { if (!active) return; active = false; el.classList.remove('dragging'); if (dx > w * 0.3) { el.style.opacity = ''; pop(); } else { el.style.transform = ''; el.style.opacity = ''; } };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  }
+  function top(title, right) { return '<div class="layer-top"><button class="back" data-pop>' + backIcon + esc(title || 'Back') + '</button>' + (right || '') + '</div>'; }
+  const S = (inner, o) => sheet(inner, o);
+
+  function layerHTML(kind) {
+    const parts = kind.split(':'); const type = parts[0]; const id = parts[1] || '';
+    if (type === 'session') {
+      const s = state.sessions.find((x) => x.id === id); const inCal = !!state.calendar[s.id];
+      const mats = (s.materials || []).map((m) => state.docs.find((d) => d.id === m)).filter(Boolean);
+      const prep = (s.prep || []).map((p) => { const done = p.id === 'challenge' ? state.challengeSent : !!state.prepDone[p.id]; const status = done ? 'Done' : p.note ? p.note : p.due ? inWords(p.due) : ''; const attr = p.push ? 'data-push="' + p.push + '" data-prep-visit="' + p.id + '"' : (p.note ? 'data-toast="' + esc(p.note) + '."' : 'data-prep="' + p.id + '"'); return '<button class="pr' + (done ? ' done' : '') + '" ' + attr + '><span class="sq' + (done ? ' done' : (p.note ? ' off' : '')) + '"></span><span class="t">' + esc(p.t) + '</span><span class="s">' + esc(status) + '</span></button>'; }).join('');
+      const doneCount = (s.prep || []).filter((p) => p.id === 'challenge' ? state.challengeSent : state.prepDone[p.id]).length;
+      return top('Sessions') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">' + esc(s.type) + (s.upcoming ? ', ' + esc(awayWords(s.date)).replace(/^is /, '') : '') + '</div><div class="h1">' + esc(s.title) + '</div><div class="sub">' + esc(weekday(s.date)) + ' ' + esc(s.long) + ', ' + esc(s.time) + '. ' + esc(s.where) + '.</div></div><div class="stack">' +
+        (s.upcoming && s.prep ? S('<div style="display:flex; justify-content:space-between; align-items:baseline"><div class="label">Before you come</div><span class="faint" style="font-size:11px">' + doneCount + ' of ' + s.prep.length + '</span></div><div class="prep">' + prep + '</div>', { hi: true, tab: doneCount < s.prep.length }) : '') +
+        S('<div class="label">What to expect</div><div class="prose"><p>' + esc(s.expect) + '</p></div>' + (s.type === 'Boardroom Day' ? '<div class="day" style="margin-top:6px"><div><span class="w">Morning</span><span class="x"><b>' + esc(s.theme || 'Expert session') + '</b>Expert led, themed to the role of the CEO.</span></div><div><span class="w">Afternoon</span><span class="x"><b>The room</b>Every Biggest Challenge worked by your peers.</span></div><div><span class="w">Close</span><span class="x"><b>Commitments</b>Agreed before you leave, in your tracker within 48 hours.</span></div></div>' : '')) +
+        (s.dannyNote ? S('<div class="label">Danny’s note</div><div style="font-size:14px; line-height:1.6">“' + esc(s.dannyNote) + '”</div><div style="font-size:11px; color:#B9B9B2">Danny, ' + esc(longDate(s.date)) + '</div>', { dark: true }) : '') +
+        (s.upcoming ? '<div class="reveal" style="display:flex; flex-direction:column; gap:10px"><a class="btn ghost" style="text-decoration:none" href="' + gcalFor(s) + '" target="_blank" rel="noopener" data-caltrack="' + s.id + '">Add to Google Calendar</a><button class="btn ghost" data-ics="' + s.id + '">Apple or Outlook invite</button></div>' : '') +
+        (mats.length ? S('<div class="label" style="padding:12px 0 6px 0">Materials</div>' + mats.map(docRow).join(''), { list: true }) : '') +
+        (!s.upcoming && s.agreed ? S('<div class="label" style="padding:12px 0 6px 0">Commitments from this session</div>' + state.commitments.filter((c) => c.fromId === s.id).map((c) => rowBtn('commitment:' + c.id, esc(c.text), c.status === 'done' ? 'Delivered' : c.status === 'parked' ? 'Parked' : 'Open')).join(''), { list: true }) : '') +
+        '</div></div>';
+    }
+    if (type === 'commitment') {
+      const c = state.commitments.find((x) => x.id === id); const note = state.notes[c.id] || '';
+      return top('Commitments') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Commitment</div><div class="h1" style="font-size:22px">' + esc(c.text) + '</div></div><div class="stack">' +
+        S('<div class="kv"><div><span>From</span><span>' + esc(c.from) + '</span></div>' + (c.due ? '<div><span>By</span><span>' + esc(longDate(c.due)) + '</span></div>' : '') + (c.status === 'done' ? '<div><span>Delivered</span><span>' + (c.doneOn ? esc(longDate(c.doneOn)) : 'today') + '</span></div>' : '') + (c.onPlan ? '<div><span>On your plan</span><span>90 day Stability plan</span></div>' : '') + '</div>', { list: true }) +
+        S('<div class="label">Status</div><div class="seg3">' + ['open', 'done', 'parked'].map((st) => '<button class="' + (c.status === st ? 'on' + (st === 'done' ? ' accent' : '') : '') + '" data-status="' + st + '" data-cid="' + c.id + '">' + (st === 'open' ? 'Open' : st === 'done' ? 'Delivered' : 'Parked') + '</button>').join('') + '</div>', { hi: true, tab: c.status === 'open' }) +
+        S('<form id="noteForm" data-cid="' + c.id + '" style="display:flex; flex-direction:column; gap:14px"><div class="field"><label for="note">What’s in the way</label><textarea id="note" rows="3" placeholder="Honest beats tidy. The room will ask.">' + esc(note) + '</textarea><div class="hint">Only you and Danny see this. It goes into your progress tracker.</div></div><button class="btn" type="submit">Save note</button></form>') +
+        '</div></div>';
+    }
+    if (type === 'doc') {
+      const d = state.docs.find((x) => x.id === id);
+      return top('Library') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">' + esc(d.cat) + '</div><div class="h1">' + esc(d.title) + '</div><div class="sub">' + esc(d.meta) + '</div></div><div class="stack">' +
+        S('<div class="prose ink"><p>' + esc(d.about || '') + '</p></div>', { hi: true }) +
+        (d.inside && d.inside.length ? S('<div class="label">In this document</div><div>' + d.inside.map((x) => '<div class="pri"><span class="sq off" style="margin-top:6px"></span><span class="t">' + esc(x) + '</span></div>').join('') + '</div>') : '') +
+        (d.link ? '<a class="btn reveal" style="text-decoration:none" href="' + esc(d.link) + '" target="_blank" rel="noopener">Open</a>' : '') + '</div></div>';
+    }
+    if (type === 'challenge') {
+      const bd = state.sessions.find((s) => s.upcoming && s.type === 'Boardroom Day');
+      const bdDue = bd ? addDays(bd.date, -7) : '';
+      return top(bd ? bd.title : 'Sessions') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">' + (bdDue ? esc(inWords(bdDue)) : '') + '</div><div class="h1">Your Biggest Challenge.</div><div class="sub">One challenge, in your own words. The room works it on the afternoon of the ' + (bd ? esc(ordinal(bd.date)) : 'day') + '. Blunt is better than polished.</div></div><div class="stack">' +
+        S('<form id="challengeForm" style="display:flex; flex-direction:column; gap:18px"><div class="field"><label for="f1">What is the challenge?</label><textarea id="f1" rows="3" required placeholder="What keeps coming back to you"></textarea></div><div class="field"><label for="f2">What have you already tried?</label><textarea id="f2" rows="3" placeholder="And what happened"></textarea></div><div class="field"><label for="f3">What do you want from the room?</label><textarea id="f3" rows="2" placeholder="A decision, a challenge, experience of the same thing"></textarea></div><button class="btn" type="submit">Send to the room</button><div class="hint" style="text-align:center">Danny and the room see it before the day. Nobody else does.</div></form>', { hi: true, tab: true }) +
+        '</div></div>';
+    }
+    if (type === 'updates') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">From TUF</div><div class="h1">Updates.</div></div><div class="stack">' + S('<div>' + state.updates.map((u) => '<div class="update"><div>' + esc(u.t) + '</div><div class="d">' + esc(u.d) + '</div></div>').join('') + '</div>', { list: true, style: 'padding:6px 18px' }) + '</div></div>'; }
+    if (type === 'you') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Member</div><div class="h1">' + esc(member.name) + '</div><div class="sub">' + esc(member.company || '') + '</div></div><div class="stack">' + S('<div class="kv"><div><span>Member since</span><span>' + esc(member.since || '') + '</span></div><div><span>Email</span><span>' + esc(member.email) + '</span></div><div><span>Sign in</span><span>Email code</span></div></div>', { list: true }) + '' + (JOE_WHATSAPP ? '<a class="btn ghost reveal" style="text-decoration:none" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener">Message Joe on WhatsApp</a>' : '') + '<button class="btn ghost reveal" data-welcome>How this app works</button><button class="btn ghost reveal" data-signout>Sign out</button></div></div>'; }
+    return top() + '<div class="content"></div>';
+  }
+
+  // ---------- Bottom sheet ----------
+  function openSheet() {
+    const sh = $('#bsheet');
+    sh.innerHTML = '<div class="grab"></div><div class="h2">Add a commitment</div><div class="sub">Written down is halfway to done.</div><form id="addForm" style="display:flex; flex-direction:column; gap:18px; margin-top:16px"><div class="field"><label for="a1">What will you do?</label><input id="a1" type="text" required placeholder="Start with a verb" autocomplete="off"></div><div class="field"><label for="a2">By when</label><input id="a2" type="date" min="' + iso(today()) + '"></div><div style="display:flex; flex-direction:column; gap:10px; margin-top:6px"><button class="btn" type="submit">Add</button><button class="btn ghost" type="button" data-close-sheet>Not now</button></div></form>';
+    $('#backdrop').classList.add('on'); sh.classList.add('on'); setTimeout(() => $('#a1').focus(), 420);
+    $('#addForm').addEventListener('submit', (e) => {
+      e.preventDefault(); const text = $('#a1').value.trim(); if (!text) return; if (!canWrite()) return;
+      const temp = { id: 'tmp' + Date.now(), text: text, from: 'Added by you', fromId: '', due: $('#a2').value || '', status: 'open', status_history: [] };
+      state.commitments.unshift(temp); closeSheet(); state.filter = 'open'; renderCommitments(); toast('Added to your commitments.');
+      if (sb && me) sb.from('br_commitments').insert({ member_id: me, text: text, source_label: 'Added by you', due: temp.due || null, status: 'open' }).select().single().then((r) => {
+        if (r.error || !r.data) { state.commitments = state.commitments.filter((x) => x.id !== temp.id); renderCommitments(); saveFailed(); }
+        else { temp.id = r.data.id; }
+      });
+    });
+  }
+  function closeSheet() { $('#backdrop').classList.remove('on'); $('#bsheet').classList.remove('on'); }
+
+  // ---------- Saving ----------
+  function canWrite() {
+    if (state.paused) { toast('The Boardroom is quiet just now.'); return false; }
+    if (!me) { toast('View only for the team account.'); return false; }
+    return true;
+  }
+  function logActivity(kind, detail) { if (!sb) return; try { sb.from('br_activity').insert({ member_id: me, kind: kind, detail: detail || {} }).then(() => {}, () => {}); } catch (err) {} }
+  function saveFailed() { toast('That did not save. Check your signal and try again.'); }
+  function setStatus(c, status) {
+    const prev = { status: c.status, doneOn: c.doneOn };
+    c.status = status; c.doneOn = status === 'done' ? iso(today()) : '';
+    c.status_history = (c.status_history || []).concat([{ at: new Date().toISOString(), status: status }]);
+    if (sb && me) sb.from('br_commitments').update({ status: c.status, done_on: c.doneOn || null, status_history: c.status_history }).eq('id', c.id).then((r) => {
+      if (r.error) { c.status = prev.status; c.doneOn = prev.doneOn; c.status_history.pop(); renderers[state.tab](); if (layers.length) refreshLayer(layers[layers.length - 1]); saveFailed(); }
+    });
+  }
+  function sendPrep(kind, item, answers, onErr) {
+    if (!sb || !me) return;
+    let sid = null;
+    if (item === 'challenge') { const bd = state.sessions.find((s) => s.upcoming && s.kind === 'boardroom_day'); sid = bd ? bd.id : null; }
+    else if (item && item.indexOf(':') > 0) sid = item.split(':')[1];
+    sb.from('br_prep').insert({ member_id: me, session_id: sid, kind: kind, answers: Object.assign({ item: item }, answers || {}) }).then((r) => {
+      if (r.error) { if (onErr) onErr(); saveFailed(); }
+    });
+  }
+
+  // ---------- Ticking ----------
+  function tick(id, btn) {
+    if (!canWrite()) return;
+    const c = state.commitments.find((x) => x.id === id); if (!c) return; const row = btn.closest('.cs');
+    const rerender = () => { renderers[state.tab](); if (layers.length) refreshLayer(layers[layers.length - 1]); };
+    if (c.status !== 'done') {
+      btn.classList.add('on'); setStatus(c, 'done'); toast('Delivered. The room will see it.');
+      setTimeout(() => { const stays = (state.tab === 'commitments' && state.filter === 'all') || layers.length || !row; if (stays) { rerender(); return; } row.classList.add('collapse'); setTimeout(rerender, 340); }, 520);
+    } else { btn.classList.remove('on'); setStatus(c, 'open'); setTimeout(rerender, 300); }
+  }
+
+  // ---------- Events ----------
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab], [data-push], [data-pop], [data-filter], [data-seg], [data-tick], [data-sheet], [data-welcome], [data-close-sheet], [data-toast], [data-cal], [data-prep], [data-status], [data-ics], [data-caltrack], [data-signout], [data-gate-back], [data-libseg]');
+    if (!t) { if (e.target.id === 'backdrop') closeSheet(); return; }
+    if (t.dataset.tab) { showTab(t.dataset.tab); return; }
+    if (t.hasAttribute('data-signout')) { if (sb) { sb.auth.signOut(); } else { location.reload(); } return; }
+    if (t.hasAttribute('data-gate-back')) { showAuth(); return; }
+    if (t.dataset.push) { if (t.dataset.prepVisit && t.dataset.push.indexOf('tab:') === 0 && !state.prepDone[t.dataset.prepVisit]) { state.prepDone[t.dataset.prepVisit] = true; if (me && !state.paused) sendPrep('tracker', t.dataset.prepVisit); } push(t.dataset.push, t); return; }
+    if (t.hasAttribute('data-pop')) { pop(); return; }
+    if (t.dataset.filter) { state.filter = t.dataset.filter; renderCommitments(); return; }
+    if (t.dataset.seg) { state.segment = t.dataset.seg; renderSessions(); return; }
+    if (t.dataset.libseg) { state.libseg = t.dataset.libseg; renderLibrary(); return; }
+    if (t.dataset.tick) { tick(t.dataset.tick, t); return; }
+    if (t.dataset.sheet) { openSheet(); return; }
+    if (t.hasAttribute('data-welcome')) { while (layers.length) pop(true); renderers[state.tab](); openWelcome(); return; }
+    if (t.hasAttribute('data-close-sheet')) { closeSheet(); return; }
+    if (t.dataset.toast) { toast(t.dataset.toast); return; }
+    if (t.dataset.prep) { if (!canWrite()) return; const pid = t.dataset.prep; const was = !!state.prepDone[pid]; state.prepDone[pid] = !was; if (!was) sendPrep('tracker', pid); refreshLayer(layers[layers.length - 1]); setDot(); return; }
+    if (t.dataset.status) { if (!canWrite()) return; const c = state.commitments.find((x) => x.id === t.dataset.cid); if (!c) return; setStatus(c, t.dataset.status); refreshLayer(layers[layers.length - 1]); toast(c.status === 'done' ? 'Delivered. The room will see it.' : c.status === 'parked' ? 'Parked. Say why in your progress tracker.' : 'Back on the list.'); return; }
+    if (t.dataset.ics) { const sx = state.sessions.find((x) => x.id === t.dataset.ics); if (sx) downloadIcs(sx); return; }
+    if (t.dataset.caltrack) { state.calendar[t.dataset.caltrack] = true; return; }
+    if (t.dataset.cal) { state.calendar[t.dataset.cal] = !state.calendar[t.dataset.cal]; t.textContent = state.calendar[t.dataset.cal] ? 'In your calendar' : 'Add to calendar'; toast(state.calendar[t.dataset.cal] ? 'Added to your calendar.' : 'Removed from your calendar.'); return; }
+  });
+  document.addEventListener('submit', (e) => {
+    if (e.target.id === 'challengeForm') {
+      e.preventDefault(); if (!canWrite()) return;
+      sendPrep('challenge', 'challenge', { challenge: $('#f1').value.trim(), tried: $('#f2').value.trim(), want: $('#f3').value.trim() }, () => { state.challengeSent = false; renderers[state.tab](); });
+      logActivity('challenge_sent', {});
+      state.challengeSent = true; toast('Sent. Danny and the room see it before the day.'); setTimeout(() => pop(), 500);
+    }
+    if (e.target.id === 'noteForm') {
+      e.preventDefault(); if (!canWrite()) return;
+      const cid = e.target.dataset.cid; const val = $('#note').value;
+      state.notes[cid] = val;
+      const c = state.commitments.find((x) => x.id === cid); if (c) c.note = val;
+      if (sb && me) sb.from('br_commitments').update({ note: val }).eq('id', cid).then((r) => { if (r.error) saveFailed(); });
+      toast('Saved to your progress tracker.');
+    }
+    if (e.target.id === 'emailForm') {
+      e.preventDefault(); const em = $('#ge').value.trim().toLowerCase(); if (!em || !sb) return;
+      const b = $('#gateBtn'); b.textContent = 'Sending…'; b.disabled = true;
+      sb.auth.signInWithOtp({ email: em, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } }).then(({ error }) => {
+        if (error) { b.textContent = 'Email me the code'; b.disabled = false; gateError(/rate limit/i.test(error.message || '') ? 'Too many sign in emails in a short time. Wait a few minutes and try once more.' : 'That email did not work. Use the address on your membership, or ask Joe on WhatsApp.'); return; }
+        pendingEmail = em; showCode();
+      });
+    }
+    if (e.target.id === 'codeForm') {
+      e.preventDefault(); const code = $('#gc').value.trim(); if (!code || !sb) return;
+      const b = $('#gateBtn'); b.textContent = 'Signing in…'; b.disabled = true;
+      sb.auth.verifyOtp({ email: pendingEmail, token: code, type: 'email' }).then(({ data, error }) => {
+        if (error || !data || !data.session) { b.textContent = 'Sign in'; b.disabled = false; gateError('That code did not match. Try again, or ask Joe on WhatsApp.'); return; }
+        enter((data.session.user && data.session.user.email) || pendingEmail);
+      });
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if ($('#bsheet').classList.contains('on')) closeSheet(); else if (layers.length) pop(); } });
+
+  function openWelcome() {
+    const sh = $('#bsheet');
+    sh.innerHTML = '<div class="grab"></div><div class="h2">Welcome to your Boardroom.</div>' +
+      '<div style="display:flex; flex-direction:column; gap:14px; margin-top:14px; font-size:15px; line-height:1.6">' +
+      '<div style="display:flex; gap:12px"><span class="sq" style="margin-top:7px"></span><span><b style="font-weight:600">Home tells you what matters right now.</b> The few things to do before your next session, written for you. Nothing else.</span></div>' +
+      '<div style="display:flex; gap:12px"><span class="sq" style="margin-top:7px"></span><span><b style="font-weight:600">Everything lives here, for good.</b> Your sessions, your commitments and your progress. Nothing to file, nothing to lose.</span></div>' +
+      '<div style="display:flex; gap:12px"><span class="sq" style="margin-top:7px"></span><span><b style="font-weight:600">Tap anything to open it.</b> Use the buttons at the bottom of your phone, or on the left on a computer, to move around. You cannot break anything.</span></div>' +
+      '</div>' +
+      '<div class="hint" style="margin-top:16px">Stuck? Message Joe on WhatsApp, as usual.</div>' +
+      '<button class="btn" style="margin-top:18px" data-close-sheet>Take a look around</button>';
+    $('#backdrop').classList.add('on'); sh.classList.add('on');
+  }
+
+  // ---------- Data layer ----------
+  function typeLabel(t) { return t === 'boardroom_day' ? 'Boardroom Day' : 'Online, two hours'; }
+  function hydrateSession(row) {
+    const bd = row.type === 'boardroom_day';
+    return {
+      id: row.id, date: row.session_date, kind: row.type,
+      day: dayNum(row.session_date), mon: mon3(row.session_date), long: longDate(row.session_date),
+      title: row.title, type: typeLabel(row.type),
+      time: row.time_label || (bd ? '9.00am to 4.30pm' : '9.30am to 11.30am'),
+      where: row.venue || (bd ? 'Venue to be confirmed' : 'Zoom'),
+      theme: row.theme || '', upcoming: daysUntil(row.session_date) >= 0,
+      expect: row.expect || '', materials: Array.isArray(row.materials) ? row.materials : []
+    };
+  }
+  function attachPrep(sessions) {
+    const firstBd = sessions.find((s) => s.upcoming && s.kind === 'boardroom_day');
+    const firstIs = sessions.find((s) => s.upcoming && s.kind === 'implementation');
+    sessions.forEach((s) => {
+      if (!s.upcoming) return;
+      const prep = [];
+      if (s.kind === 'boardroom_day') {
+        const due = addDays(s.date, -7); const opens = addDays(s.date, -21); const packs = addDays(s.date, -3);
+        if (firstBd && s.id === firstBd.id && daysUntil(opens) <= 0) {
+          prep.push({ id: 'challenge', t: 'Biggest Challenge form', due: due, push: 'challenge' });
+          if (daysUntil(packs) >= 0) prep.push({ id: 'preread:' + s.id, t: 'Read the session pack', note: 'Arrives ' + longDate(packs), arrives: packs });
+          prep.push({ id: 'review:' + s.id, t: 'Review your open commitments', push: 'tab:commitments' });
+        } else {
+          prep.push({ id: 'challenge:' + s.id, t: 'Biggest Challenge form', due: due, note: 'Opens ' + longDate(opens) });
+        }
+      }
+      if (s.kind === 'implementation') {
+        const due = addDays(s.date, -2); const opens = addDays(s.date, -7);
+        if (firstIs && s.id === firstIs.id && daysUntil(opens) <= 0) {
+          prep.push({ id: 'tracker:' + s.id, t: 'Progress tracker', due: due });
+          prep.push({ id: 'review2:' + s.id, t: 'Update your commitments', push: 'tab:commitments' });
+        } else {
+          prep.push({ id: 'tracker:' + s.id, t: 'Progress tracker', due: due, note: 'Opens ' + longDate(opens) });
+        }
+      }
+      if (prep.length) s.prep = prep;
+    });
+  }
+  function hydrateCommitment(row) {
+    return { id: row.id, text: row.text, from: row.source_label || '', fromId: row.source_session || '', due: row.due || '', status: row.status, doneOn: row.done_on || '', onPlan: !!row.on_plan, note: row.note || '', status_history: Array.isArray(row.status_history) ? row.status_history : [] };
+  }
+  function hydrateDoc(row) {
+    const safeLink = (row.link && /^https:\/\//i.test(row.link)) ? row.link : '';
+    return { id: row.id, cat: row.category, title: row.title, meta: row.meta || '', about: row.about || '', inside: [], link: safeLink, isNew: !!row.is_new };
+  }
+  async function loadAll() {
+    const [sess, docs, posts, settings, mem] = await Promise.all([
+      sb.from('br_sessions').select('*').eq('published', true).order('session_date'),
+      sb.from('br_documents').select('*').eq('published', true).order('created_at'),
+      sb.from('br_posts').select('*').eq('approved', true).order('posted_at', { ascending: false }),
+      sb.from('br_settings').select('*'),
+      sb.from('br_members').select('*').ilike('email', authEmail)
+    ]);
+    const err = [sess, docs, posts, settings, mem].map((r) => r.error).find(Boolean);
+    if (err) throw err;
+    const mrow = (mem.data || [])[0] || null;
+    me = mrow ? mrow.id : null;
+    if (mrow) member = { first: (mrow.name || '').split(' ')[0], name: mrow.name || '', company: mrow.company || '', since: mrow.joined_date ? monthYear(mrow.joined_date) : '', joined: mrow.joined_date || '', email: mrow.email };
+    else member = { first: authEmail.split('@')[0], name: authEmail.split('@')[0], company: '', since: '', joined: '', email: authEmail };
+    state.sessions = (sess.data || []).map(hydrateSession);
+    state.sessions.sort((a, b) => parse(a.date) - parse(b.date));
+    attachPrep(state.sessions);
+    state.docs = (docs.data || []).map(hydrateDoc);
+    state.updates = (posts.data || []).map((r) => ({ d: agoWords(r.posted_at), t: r.body }));
+    const settingsMap = {}; (settings.data || []).forEach((r) => { settingsMap[r.key] = r.value || {}; });
+    state.paused = !!(settingsMap.app && settingsMap.app.paused);
+    state.dannyLine = (settingsMap.danny_line && settingsMap.danny_line.t) ? { t: settingsMap.danny_line.t, d: settingsMap.danny_line.d || iso(today()) } : null;
+    state.challengeSent = false; state.prepDone = {}; state.notes = {}; state.commitments = [];
+    if (me) {
+      const [com, prep] = await Promise.all([
+        sb.from('br_commitments').select('*').eq('member_id', me).order('created_at', { ascending: false }),
+        sb.from('br_prep').select('*').eq('member_id', me)
+      ]);
+      if (com.error || prep.error) throw (com.error || prep.error);
+      state.commitments = (com.data || []).map(hydrateCommitment);
+      state.commitments.forEach((c) => { if (c.note) state.notes[c.id] = c.note; });
+      const bd = state.sessions.find((s) => s.upcoming && s.kind === 'boardroom_day');
+      (prep.data || []).forEach((r) => {
+        if (r.kind === 'challenge' && bd && r.session_id === bd.id) state.challengeSent = true;
+        if (r.kind === 'tracker' && r.answers && r.answers.item) state.prepDone[r.answers.item] = true;
+      });
+    }
+  }
+
+  // ---------- Sign in gate ----------
+  const BRAND_MARK = '<svg width="52" height="26" viewBox="0 0 48 24" fill="none" aria-hidden="true"><path d="M24 12 C28 3.5, 41.5 4, 41.5 12 C41.5 20, 28 20.5, 24 12" stroke="#FBF000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M24 12 C20 3.5, 6.5 4, 6.5 12 C6.5 20, 20 20.5, 24 12" stroke="#0A0A0A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+  let pendingEmail = '';
+  function gate(html) { const g = $('#gate'); g.innerHTML = '<div class="inner"><div class="mark">' + BRAND_MARK + '<span>THE BOARDROOM</span></div>' + html + '</div>'; g.classList.add('on'); stagger(g); }
+  function hideGate() { const g = $('#gate'); g.classList.remove('on'); g.innerHTML = ''; }
+  function gateError(msg) { const el = $('#gateErr'); if (el) { el.textContent = msg; el.hidden = false; } }
+  function showAuth() {
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Your Boardroom.</div><div class="sub">Sign in with the email on your membership. A six digit code comes to your inbox.</div></div>' +
+      '<form id="emailForm" class="sheet reveal hi" style="gap:16px"><i class="ixt"></i><div class="field"><label for="ge">Email</label><input id="ge" type="email" required autocomplete="email" inputmode="email" placeholder="you@company.com"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Email me the code</button></form>' +
+      '<div class="hint reveal">Stuck? Message Joe on WhatsApp, as usual.</div>' +
+      '<div class="foot" style="padding:0">The Ultimate Founder Boardroom</div>');
+    setTimeout(() => { const f = $('#ge'); if (f) f.focus(); }, 220);
+  }
+  function showCode() {
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Check your email.</div><div class="sub">An email is on its way to ' + esc(pendingEmail) + '. Tap the sign in link in it, or enter the six digit code if it shows one.</div></div>' +
+      '<form id="codeForm" class="sheet reveal hi" style="gap:16px"><i class="ixt"></i><div class="field"><label for="gc">Code</label><input id="gc" type="text" required autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px; font-size:22px"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Sign in</button></form>' +
+      '<button class="quiet-link reveal" data-gate-back>Use a different email</button>');
+    setTimeout(() => { const f = $('#gc'); if (f) f.focus(); }, 220);
+  }
+  function showNotMember() {
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">This app is for Boardroom members.</div><div class="sub">If you think you should be here, message Joe on WhatsApp.</div></div>' +
+      '<button class="quiet-link reveal" data-signout>Use a different email</button>');
+  }
+
+  // ---------- Boot ----------
+  let booted = false, refreshing = false, entering = false, lastLoad = 0;
+  async function enter(email) {
+    if (entering) return; entering = true;
+    authEmail = (email || '').toLowerCase();
+    try { await loadAll(); } catch (err) {
+      entering = false;
+      gate('<div class="head reveal" style="padding-top:8px"><div class="h1">We could not load your Boardroom.</div><div class="sub">Check your signal and try again, or message Joe on WhatsApp.</div></div><button class="btn reveal" data-gate-retry>Try again</button>');
+      const rb = $('[data-gate-retry]'); if (rb) rb.addEventListener('click', () => enter(authEmail));
+      return;
+    }
+    lastLoad = Date.now();
+    if (!me && !isTeam(authEmail)) { entering = false; showNotMember(); return; }
+    hideGate();
+    showTab(state.tab || 'home', !booted);
+    settleInd();
+    if (!booted) { booted = true; logActivity('sign_in', {}); setTimeout(openWelcome, reduced ? 100 : 900); }
+    entering = false;
+  }
+  async function refresh() {
+    if (!booted || !sb || refreshing) return;
+    if (Date.now() - lastLoad < 60000) return;
+    refreshing = true;
+    try { await loadAll(); lastLoad = Date.now(); renderers[state.tab](); if (layers.length) refreshLayer(layers[layers.length - 1]); setDot(); } catch (err) {}
+    refreshing = false;
+  }
+  async function boot() {
+    if (!sb) { showAuth(); setTimeout(() => gateError('The connection did not start. Refresh the page, or message Joe on WhatsApp.'), 300); return; }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') { location.reload(); return; }
+      if (event === 'SIGNED_IN' && !booted && !entering && session && session.user) enter(session.user.email);
+    });
+    let session = null;
+    try { const r = await sb.auth.getSession(); session = r.data ? r.data.session : null; } catch (err) {}
+    if (session && session.user) enter(session.user.email); else if (location.hash.indexOf('access_token') < 0) showAuth();
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+  settleInd();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(settleInd);
+  window.addEventListener('resize', settleInd);
+  boot();
+})();
+</script>
