@@ -863,7 +863,7 @@
       e.preventDefault(); const em = $('#ge').value.trim().toLowerCase(); if (!em || !sb) return;
       const b = $('#gateBtn'); b.textContent = 'Sending…'; b.disabled = true;
       sb.auth.signInWithOtp({ email: em, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname } }).then(({ error }) => {
-        if (error) { b.textContent = 'Email me the code'; b.disabled = false; gateError(/rate limit/i.test(error.message || '') ? 'Too many sign in emails in a short time. Wait a few minutes and try once more.' : 'That email did not work. Use the address on your membership, or ask Joe on WhatsApp.'); return; }
+        if (error) { b.textContent = 'Email me a link'; b.disabled = false; gateError(/rate limit/i.test(error.message || '') ? 'Too many sign in emails in a short time. Wait a few minutes and try once more.' : 'That email did not work. Use the address on your membership, or ask Joe on WhatsApp.'); return; }
         pendingEmail = em; showCode();
       });
     }
@@ -998,17 +998,19 @@
   function hideGate() { const g = $('#gate'); g.classList.remove('on'); g.innerHTML = ''; }
   function gateError(msg) { const el = $('#gateErr'); if (el) { el.textContent = msg; el.hidden = false; } }
   function showAuth() {
-    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Your Boardroom.</div><div class="sub">Sign in with the email on your membership. A six digit code comes to your inbox.</div></div>' +
-      '<form id="emailForm" class="sheet reveal hi" style="gap:16px"><i class="ixt"></i><div class="field"><label for="ge">Email</label><input id="ge" type="email" required autocomplete="email" inputmode="email" placeholder="you@company.com"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Email me the code</button></form>' +
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Your Boardroom.</div><div class="sub">Sign in with the email on your membership. We email you a link to tap.</div></div>' +
+      '<form id="emailForm" class="sheet reveal hi" style="gap:16px"><i class="ixt"></i><div class="field"><label for="ge">Email</label><input id="ge" type="email" required autocomplete="email" inputmode="email" placeholder="you@company.com"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Email me a link</button></form>' +
       '<div class="hint reveal">Stuck? Message Joe on WhatsApp, as usual.</div>' +
       '<div class="foot" style="padding:0">The Ultimate Founder Boardroom</div>');
     setTimeout(() => { const f = $('#ge'); if (f) f.focus(); }, 220);
   }
   function showCode() {
-    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Check your email.</div><div class="sub">An email is on its way to ' + esc(pendingEmail) + '. Tap the sign in link in it, or enter the six digit code if it shows one.</div></div>' +
-      '<form id="codeForm" class="sheet reveal hi" style="gap:16px"><i class="ixt"></i><div class="field"><label for="gc">Code</label><input id="gc" type="text" required autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px; font-size:22px"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Sign in</button></form>' +
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">Check your email.</div><div class="sub">We have sent a sign in link to ' + esc(pendingEmail) + '. Open your email on this device and tap the link. You are then signed in.</div></div>' +
+      '<div class="sheet reveal hi"><i class="ixt"></i><div style="display:flex; gap:12px; align-items:flex-start"><span class="sq" style="margin-top:5px"></span><div style="font-size:14px; line-height:1.55">The email is from The Ultimate Founder. If it is not there in a minute, check your junk folder, or message Joe on WhatsApp.</div></div></div>' +
+      // A code entry is kept ready for when the team turns on six digit codes; hidden while the email sends a link only.
+      '<button class="quiet-link reveal" data-code-toggle style="display:none">Enter a code instead</button>' +
+      '<form id="codeForm" class="sheet reveal" style="gap:16px; display:none"><div class="field"><label for="gc">Code</label><input id="gc" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px; font-size:22px"></div><div class="err" id="gateErr" hidden></div><button class="btn" type="submit" id="gateBtn">Sign in</button></form>' +
       '<button class="quiet-link reveal" data-gate-back>Use a different email</button>');
-    setTimeout(() => { const f = $('#gc'); if (f) f.focus(); }, 220);
   }
   function showNotMember() {
     gate('<div class="head reveal" style="padding-top:8px"><div class="h1">This app is for Boardroom members.</div><div class="sub">If you think you should be here, message Joe on WhatsApp.</div></div>' +
