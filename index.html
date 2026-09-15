@@ -753,7 +753,7 @@
       return top('Library') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">' + esc(d.cat) + '</div><div class="h1">' + esc(d.title) + '</div><div class="sub">' + esc(d.meta) + '</div></div><div class="stack">' +
         S('<div class="prose ink"><p>' + esc(d.about || '') + '</p></div>', { hi: true }) +
         (d.inside && d.inside.length ? S('<div class="label">In this document</div><div>' + d.inside.map((x) => '<div class="pri"><span class="sq off" style="margin-top:6px"></span><span class="t">' + esc(x) + '</span></div>').join('') + '</div>') : '') +
-        (d.link ? '<a class="btn reveal" style="text-decoration:none" href="' + esc(d.link) + '" target="_blank" rel="noopener">Open</a>' : '') + '</div></div>';
+        (d.storagePath ? '<button class="btn reveal" data-docopen="' + esc(d.id) + '">Open</button>' : (d.link ? '<a class="btn reveal" style="text-decoration:none" href="' + esc(d.link) + '" target="_blank" rel="noopener">Open</a>' : '')) + '</div></div>';
     }
     if (type === 'challenge') {
       const bd = state.sessions.find((s) => s.upcoming && s.type === 'Boardroom Day');
@@ -823,7 +823,7 @@
 
   // ---------- Events ----------
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-tab], [data-push], [data-pop], [data-filter], [data-seg], [data-tick], [data-sheet], [data-welcome], [data-close-sheet], [data-toast], [data-cal], [data-prep], [data-status], [data-ics], [data-caltrack], [data-signout], [data-gate-back], [data-libseg]');
+    const t = e.target.closest('[data-tab], [data-push], [data-pop], [data-filter], [data-seg], [data-tick], [data-sheet], [data-welcome], [data-close-sheet], [data-toast], [data-cal], [data-prep], [data-status], [data-ics], [data-caltrack], [data-signout], [data-gate-back], [data-libseg], [data-docopen]');
     if (!t) { if (e.target.id === 'backdrop') closeSheet(); return; }
     if (t.dataset.tab) { showTab(t.dataset.tab); return; }
     if (t.hasAttribute('data-signout')) { if (sb) { sb.auth.signOut(); } else { location.reload(); } return; }
@@ -833,6 +833,7 @@
     if (t.dataset.filter) { state.filter = t.dataset.filter; renderCommitments(); return; }
     if (t.dataset.seg) { state.segment = t.dataset.seg; renderSessions(); return; }
     if (t.dataset.libseg) { state.libseg = t.dataset.libseg; renderLibrary(); return; }
+    if (t.dataset.docopen) { openDoc(t.dataset.docopen); return; }
     if (t.dataset.tick) { tick(t.dataset.tick, t); return; }
     if (t.dataset.sheet) { openSheet(); return; }
     if (t.hasAttribute('data-welcome')) { while (layers.length) pop(true); renderers[state.tab](); openWelcome(); return; }
@@ -938,7 +939,21 @@
   }
   function hydrateDoc(row) {
     const safeLink = (row.link && /^https:\/\//i.test(row.link)) ? row.link : '';
-    return { id: row.id, cat: row.category, title: row.title, meta: row.meta || '', about: row.about || '', inside: [], link: safeLink, isNew: !!row.is_new };
+    return { id: row.id, cat: row.category, title: row.title, meta: row.meta || '', about: row.about || '', inside: [], link: safeLink, storagePath: row.storage_path || '', isNew: !!row.is_new };
+  }
+  // Open a stored document via a short lived signed URL. The blank tab is
+  // opened synchronously on the click so popup blockers let it through, then
+  // pointed at the signed URL once it resolves. Members only ever get a link
+  // that lasts a minute; there is no permanent public URL.
+  async function openDoc(id) {
+    const d = state.docs.find((x) => x.id === id); if (!d) return;
+    if (!d.storagePath) { if (d.link) window.open(d.link, '_blank', 'noopener'); return; }
+    const w = window.open('', '_blank');
+    try {
+      const { data, error } = await sb.storage.from('br-docs').createSignedUrl(d.storagePath, 60);
+      if (error || !data || !data.signedUrl) { if (w) w.close(); toast('That document would not open. Try again, or ask Joe on WhatsApp.'); return; }
+      if (w) { w.location = data.signedUrl; } else { window.open(data.signedUrl, '_blank', 'noopener'); }
+    } catch (e) { if (w) w.close(); toast('That document would not open. Try again, or ask Joe on WhatsApp.'); }
   }
   async function loadAll() {
     const [sess, docs, posts, settings, mem, sdocs] = await Promise.all([
