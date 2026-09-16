@@ -157,6 +157,18 @@
   .search input { flex-grow: 1; border: 0; background: transparent; font-size: 15px; outline: none; }
   .search input::placeholder { color: var(--ink3); }
   .new { font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-left: 6px; }
+  /* Library as a card grid: one per row on a phone, three across on a computer. */
+  .dgrid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .dcat { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--ink3); padding: 18px 2px 2px 2px; }
+  .dcard { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; width: 100%; background: var(--sheet); border-radius: 10px; padding: 18px; box-shadow: 0 1px 2px rgba(20,20,10,0.06), 0 6px 18px rgba(20,20,10,0.06); transition: transform 0.16s ease, box-shadow 0.16s ease; }
+  .dcard:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(20,20,10,0.06), 0 12px 26px rgba(20,20,10,0.12); }
+  .dcard .ic { width: 34px; height: 34px; border-radius: 8px; background: var(--ink); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dcard .dt { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; line-height: 1.3; }
+  .dcard:hover .dt { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .dcard .dd { font-size: 13px; color: var(--ink2); line-height: 1.5; flex-grow: 1; }
+  .dtag { font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink3); border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; margin-top: 2px; }
+  .dtag.hot { color: var(--ink); border-color: var(--ink); background: var(--accent); }
+  @media (min-width: 560px) { .dgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .empty { padding: 30px 0; color: var(--ink3); }
   .prep .pr { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; border-top: 1px solid var(--line); text-align: left; }
   .prep .pr:first-of-type { border-top: 0; }
@@ -285,7 +297,7 @@
     .stack.two > .add, .stack.two > .strip, .stack.two > .empty { grid-column: 1 / -1; }
     .gb .quote { padding-top: 6px; }
     .bi .btn { width: max-content; padding: 0 28px; }
-    #docs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    .dgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .search { max-width: 480px; }
     .seg { max-width: 380px; }
     .ycal { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -517,37 +529,76 @@
   }
 
   function docRow(d) { return rowBtn('doc:' + d.id, esc(d.title), esc(d.meta), d.isNew ? '<span class="new">NEW</span>' : ''); }
+  // A line icon per document, chosen from its title so the grid has rhythm
+  // rather than six identical marks.
+  const ICONS = {
+    map: '<path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2z"></path><path d="M9 4v14M15 6v14"></path>',
+    boxes: '<rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect>',
+    score: '<circle cx="12" cy="12" r="9"></circle><path d="M8.5 12.5l2.5 2.5 4.5-5"></path>',
+    plan: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path>',
+    book: '<path d="M4 4.5v14A2.5 2.5 0 0 0 6.5 21H20"></path><path d="M6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5"></path><path d="M10 8h6"></path>',
+    deck: '<rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path>',
+    doc: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path>'
+  };
+  function iconFor(d) {
+    const t = ((d.title || '') + ' ' + (d.meta || '')).toLowerCase();
+    let k = 'doc';
+    if (/stage|journey|map|route/.test(t)) k = 'map';
+    else if (/model|loop|box|matrix/.test(t)) k = 'boxes';
+    else if (/scorecard|score|assessment/.test(t)) k = 'score';
+    else if (/plan|template|tracker|worksheet/.test(t)) k = 'plan';
+    else if (/read|book|guide|member/.test(t)) k = 'book';
+    else if (/deck|slide|pack|session/.test(t)) k = 'deck';
+    return '<span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[k] + '</svg></span>';
+  }
+  function docTag(d, isStart) {
+    if (isStart) return '<span class="dtag hot">Start here</span>';
+    const c = d.cat || '';
+    const label = c === 'Frameworks' ? 'Framework' : c === 'Session materials' ? 'Session material' : c;
+    return label ? '<span class="dtag">' + esc(label) + '</span>' : '';
+  }
+  function docCard(d, isStart) {
+    return '<button class="dcard reveal" data-push="doc:' + d.id + '">' + iconFor(d) +
+      '<span class="dt">' + esc(d.title) + (d.isNew ? '<span class="new">NEW</span>' : '') + '</span>' +
+      '<span class="dd">' + esc(d.about || d.meta || '') + '</span>' +
+      docTag(d, isStart) + '</button>';
+  }
   function renderLibrary() {
     const ip = state.libseg !== 'sess';
     const q = state.query.trim().toLowerCase();
     const match = (d) => !q || (d.title + ' ' + d.cat + ' ' + d.about).toLowerCase().includes(q);
     const start = state.docs.find((d) => d.start) || state.docs.find((d) => d.cat === 'Membership');
+    const showSearch = state.docs.length > 8 || !!state.query;
+    const group = (label, docs, startId) => docs.length
+      ? '<div class="dcat">' + esc(label) + '</div><div class="dgrid">' + docs.map((d) => docCard(d, d.id === startId)).join('') + '</div>'
+      : '';
     const ipHTML = () => {
       const cats = ['Frameworks', 'Membership'];
-      const parts = cats.map((cat) => {
-        const inCat = state.docs.filter((d) => d.cat === cat && match(d));
-        return inCat.length ? sheet('<div class="label" style="padding:12px 0 6px 0">' + esc(cat) + '</div>' + inCat.map(docRow).join(''), { list: true }) : '';
-      }).join('');
+      const startId = start ? start.id : null;
+      const parts = cats.map((cat) => group(cat, state.docs.filter((d) => d.cat === cat && match(d)), startId)).join('');
       return parts || '<div class="empty">Nothing matches that. Try a shorter word.</div>';
     };
     const sessHTML = () => {
       const past = state.sessions.filter((s) => !s.upcoming && (s.materials || []).length);
       const parts = past.map((s) => {
         const mats = (s.materials || []).map((m) => state.docs.find((d) => d.id === m)).filter((d) => d && match(d));
-        return mats.length ? sheet('<div class="label" style="padding:12px 0 6px 0">' + esc(s.title) + ', ' + esc(s.long) + '</div>' + mats.map(docRow).join(''), { list: true }) : '';
+        return group(s.title + ', ' + s.long, mats);
       }).join('');
       const loose = state.docs.filter((d) => d.cat === 'Session materials' && match(d) && !state.sessions.some((s) => (s.materials || []).indexOf(d.id) >= 0));
-      const looseHTML = loose.length ? sheet('<div class="label" style="padding:12px 0 6px 0">Other session documents</div>' + loose.map(docRow).join(''), { list: true }) : '';
-      return (parts + looseHTML) || '<div class="empty">' + (q ? 'Nothing matches that. Try a shorter word.' : 'Packs and decks land here within 48 hours of each session.') + '</div>';
+      return (parts + group('Other session documents', loose)) || '<div class="empty">' + (q ? 'Nothing matches that. Try a shorter word.' : 'Packs and decks land here within 48 hours of each session.') + '</div>';
     };
     views.library.innerHTML = topBar('Library') +
       '<div class="pad">' + stripHTML() + '</div>' +
       '<div class="pad head reveal"><div class="h1">' + (ip ? 'The thinking, in one place.' : 'Everything from your sessions.') + '</div><div class="sub">' + (ip ? 'The TUF frameworks and guides, always current.' : 'Packs and decks from every session, newest first.') + '</div></div>' +
       '<div class="pad"><div class="seg reveal"><span class="ind" style="transform:translateX(' + (ip ? 0 : 100) + '%)"></span><button data-libseg="ip" class="' + (ip ? 'on' : '') + '">TUF IP</button><button data-libseg="sess" class="' + (!ip ? 'on' : '') + '">Session documents</button></div></div>' +
-      '<div class="pad"><div class="search reveal" style="margin-top:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B66" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input id="q" type="search" placeholder="Search the library" value="' + esc(state.query) + '" autocomplete="off"></div></div>' +
-      '<div class="pad stack" style="padding-top:12px">' + (ip && !state.query && start ? sheet('<div class="label">Start here</div><div class="h3">' + esc(start.title) + '</div><div class="sub">' + esc(start.meta) + '. Read once, refer to often.</div>', { push: 'doc:' + start.id, tab: true, hi: true }) : '') +
-      '<div id="docs" style="display:flex; flex-direction:column; gap:12px">' + (ip ? ipHTML() : sessHTML()) + '</div></div>';
-    $('#q', views.library).addEventListener('input', (e) => { state.query = e.target.value; $('#docs', views.library).innerHTML = ip ? ipHTML() : sessHTML(); });
+      // Search only earns its place once there is enough here to get lost in.
+      // The start here document is marked on its own card rather than repeated
+      // in a card above the grid.
+      (showSearch ? '<div class="pad"><div class="search reveal" style="margin-top:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B66" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input id="q" type="search" placeholder="Search the library" value="' + esc(state.query) + '" autocomplete="off"></div></div>' : '') +
+      '<div class="pad stack" style="padding-top:4px">' +
+      '<div id="docs">' + (ip ? ipHTML() : sessHTML()) + '</div></div>';
+    const qi = $('#q', views.library);
+    if (qi) qi.addEventListener('input', (e) => { state.query = e.target.value; $('#docs', views.library).innerHTML = ip ? ipHTML() : sessHTML(); });
   }
 
   // ---------- The year, and real calendar invites ----------
