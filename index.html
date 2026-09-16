@@ -512,7 +512,7 @@
         rowBtn('tab:library', 'Library', 'Frameworks and materials') +
         rowBtn('updates', 'From TUF', state.updates.length ? esc(state.updates[0].t) : '') +
         joeRow(), { list: true }) + '</div></div>' +
-      '<div class="pad foot">The Ultimate Founder Boardroom &middot; <button class="quiet-link" data-welcome style="font-size:12px; min-height:0">How this app works</button></div>';
+      '<div class="pad foot">The Ultimate Founder Boardroom &middot; <button class="quiet-link" data-welcome style="font-size:12px; min-height:0">How this portal works</button></div>';
   }
 
   function renderCommitments() {
@@ -586,7 +586,7 @@
   function downloadIcs(sess) {
     let framed = false;
     try { framed = window !== window.top; } catch (err) { framed = true; }
-    if (framed) { toast('In the live app this downloads the invite for Apple or Outlook. In this preview, use Google Calendar.'); return; }
+    if (framed) { toast('In the live portal this downloads the invite for Apple or Outlook. In this preview, use Google Calendar.'); return; }
     try {
       const a = document.createElement('a');
       a.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsFor(sess));
@@ -763,7 +763,7 @@
         '</div></div>';
     }
     if (type === 'updates') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">From TUF</div><div class="h1">Updates.</div></div><div class="stack">' + S('<div>' + state.updates.map((u) => '<div class="update"><div>' + esc(u.t) + '</div><div class="d">' + esc(u.d) + '</div></div>').join('') + '</div>', { list: true, style: 'padding:6px 18px' }) + '</div></div>'; }
-    if (type === 'you') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Member</div><div class="h1">' + esc(member.name) + '</div><div class="sub">' + esc(member.company || '') + '</div></div><div class="stack">' + S('<div class="kv"><div><span>Member since</span><span>' + esc(member.since || '') + '</span></div><div><span>Email</span><span>' + esc(member.email) + '</span></div><div><span>Sign in</span><span>Email code</span></div></div>', { list: true }) + '' + (JOE_WHATSAPP ? '<a class="btn ghost reveal" style="text-decoration:none" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener">Message Joe on WhatsApp</a>' : '') + '<button class="btn ghost reveal" data-welcome>How this app works</button><button class="btn ghost reveal" data-signout>Sign out</button></div></div>'; }
+    if (type === 'you') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Member</div><div class="h1">' + esc(member.name) + '</div><div class="sub">' + esc(member.company || '') + '</div></div><div class="stack">' + S('<div class="kv"><div><span>Member since</span><span>' + esc(member.since || '') + '</span></div><div><span>Email</span><span>' + esc(member.email) + '</span></div><div><span>Sign in</span><span>Email code</span></div></div>', { list: true }) + '' + (JOE_WHATSAPP ? '<a class="btn ghost reveal" style="text-decoration:none" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener">Message Joe on WhatsApp</a>' : '') + '<button class="btn ghost reveal" data-welcome>How this portal works</button><button class="btn ghost reveal" data-signout>Sign out</button></div></div>'; }
     return top() + '<div class="content"></div>';
   }
 
@@ -825,7 +825,9 @@
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab], [data-push], [data-pop], [data-filter], [data-seg], [data-tick], [data-sheet], [data-welcome], [data-close-sheet], [data-toast], [data-cal], [data-prep], [data-status], [data-ics], [data-caltrack], [data-signout], [data-gate-back], [data-libseg], [data-docopen]');
     if (!t) { if (e.target.id === 'backdrop') closeSheet(); return; }
-    if (t.dataset.tab) { showTab(t.dataset.tab); return; }
+    // Close anything open on top first, or the tab changes behind it and the
+    // nav looks dead.
+    if (t.dataset.tab) { while (layers.length) pop(true); closeSheet(); showTab(t.dataset.tab); return; }
     if (t.hasAttribute('data-signout')) { if (sb) { sb.auth.signOut(); } else { location.reload(); } return; }
     if (t.hasAttribute('data-gate-back')) { showAuth(); return; }
     if (t.dataset.push) { if (t.dataset.prepVisit && t.dataset.push.indexOf('tab:') === 0 && !state.prepDone[t.dataset.prepVisit]) { state.prepDone[t.dataset.prepVisit] = true; if (me && !state.paused) sendPrep('tracker', t.dataset.prepVisit); } push(t.dataset.push, t); return; }
@@ -1028,7 +1030,7 @@
       '<button class="quiet-link reveal" data-gate-back>Use a different email</button>');
   }
   function showNotMember() {
-    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">This app is for Boardroom members.</div><div class="sub">If you think you should be here, message Joe on WhatsApp.</div></div>' +
+    gate('<div class="head reveal" style="padding-top:8px"><div class="h1">This portal is for Boardroom members.</div><div class="sub">If you think you should be here, message Joe on WhatsApp.</div></div>' +
       '<button class="quiet-link reveal" data-signout>Use a different email</button>');
   }
 
