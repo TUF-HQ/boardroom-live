@@ -90,6 +90,10 @@
   .sq.off { background: transparent; border-color: var(--ink3); }
   .sq.done { background: var(--ink); border-color: var(--ink); }
   .quote { display: flex; gap: 14px; align-items: flex-start; padding-top: 22px; }
+  /* Home is cut back on a phone and fuller on a computer, where the extra rows
+     cost no scrolling. These hide the extras below the desktop breakpoint. */
+  .deskonly { display: none; }
+  .deskonly-b { display: none; }
   .quote i { width: 2px; align-self: stretch; background: var(--ink); flex-shrink: 0; }
   .quote .q { font-size: 14px; line-height: 1.55; font-weight: 500; }
   .foot { padding: 28px 0 0 0; font-size: 12px; color: var(--ink3); }
@@ -169,17 +173,6 @@
   /* Agenda home */
   .row .num { font-size: 13px; font-weight: 800; color: var(--ink3); width: 30px; flex-shrink: 0; }
   .row .l { flex-grow: 1; }
-  .wkrow { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding: 6px 0; }
-  .wkrow::-webkit-scrollbar { display: none; }
-  .wkb { display: flex; align-items: center; gap: 10px; flex-shrink: 0; text-align: left; }
-  .wkb .wd { width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
-  .wkb .wd b { font-size: 16px; font-weight: 800; line-height: 1; }
-  .wkb .wd i { font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
-  .wkb .wd.bdx { background: var(--accent); border: 1px solid var(--ink); color: var(--ink); }
-  .wkb .wd.isx { background: var(--ink); color: #FFFFFF; }
-  .wkb .wd.rvx { background: var(--sheet); border: 1.5px dashed var(--ink); color: var(--ink); }
-  .wkb .wt { font-size: 12px; font-weight: 600; line-height: 1.3; max-width: 110px; }
-  .wkb:hover .wt { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 3px; }
   .heroq { width: 36px; height: 36px; flex-shrink: 0; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: var(--ink); }
 
   /* Year calendar */
@@ -276,6 +269,8 @@
 
   /* Laptop and desktop */
   @media (min-width: 900px) {
+    .deskonly { display: flex; }
+    .deskonly-b { display: block; }
     .stage { padding: 0; }
     .phone { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; }
     .views { left: 232px; }
@@ -441,12 +436,12 @@
     return '<div class="sheet reveal cs' + (c.status === 'done' ? ' dim' : '') + (tab ? ' hi' : '') + '" data-item="' + c.id + '">' + (tab ? '<i class="ixt"></i>' : '') + checkBtn(c) +
       '<button class="body" data-push="commitment:' + c.id + '"><span class="text">' + esc(c.text) + (c.status === 'parked' ? '<span class="tag">Parked</span>' : '') + '</span><span class="meta">' + meta + '</span></button></div>';
   }
-  function rowBtn(push, title, meta, extra) {
-    return '<button class="row" data-push="' + push + '"><span class="l"><b>' + title + (extra || '') + '</b>' + (meta ? '<span>' + meta + '</span>' : '') + '</span>' + chevron + '</button>';
+  function rowBtn(push, title, meta, extra, cls) {
+    return '<button class="row' + (cls ? ' ' + cls : '') + '" data-push="' + push + '"><span class="l"><b>' + title + (extra || '') + '</b>' + (meta ? '<span>' + meta + '</span>' : '') + '</span>' + chevron + '</button>';
   }
-  function joeRow() {
+  function joeRow(cls) {
     if (!JOE_WHATSAPP) return '';
-    return '<a class="row" style="text-decoration:none; color:inherit" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener"><span class="l"><b>Message Joe</b><span>On WhatsApp, any time</span></span>' + chevron + '</a>';
+    return '<a class="row' + (cls ? ' ' + cls : '') + '" style="text-decoration:none; color:inherit" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener"><span class="l"><b>Message Joe</b><span>On WhatsApp, any time</span></span>' + chevron + '</a>';
   }
   function topBar(eyebrow) { return '<div class="top"><div class="eyebrow">' + esc(eyebrow) + '</div><button class="avatar" data-push="you" aria-label="You">' + esc(initials()) + '</button></div>'; }
 
@@ -467,19 +462,11 @@
     return items.slice(0, 3);
   }
 
-  function nextMonthsHTML() {
-    const entries = state.sessions.filter((s) => s.upcoming).map((s) => ({ date: s.date, t: s.title, kind: s.type === 'Boardroom Day' ? 'bdx' : 'isx', push: 'session:' + s.id }));
-    entries.sort((a, b) => parse(a.date) - parse(b.date));
-    const four = entries.slice(0, 4);
-    return '<div class="reveal" style="display:flex; flex-direction:column; gap:10px"><span class="label">Your next three months</span><div class="wkrow">' +
-      four.map((e) => '<button class="wkb" data-push="' + e.push + '"><span class="wd ' + e.kind + '"><b>' + esc(dayNum(e.date)) + '</b><i>' + esc(mon3(e.date)) + '</i></span><span class="wt">' + esc(e.t) + '</span></button>').join('') +
-      '<button class="quiet-link" data-push="tab:sessions" style="flex-shrink:0; border-bottom:2px solid var(--accent); min-height:0; padding-bottom:2px">The whole year</button></div></div>';
-  }
-
   function renderHome() {
     const next = state.sessions.find((s) => s.upcoming);
+    const pastSessions = state.sessions.filter((s) => !s.upcoming);
+    const last = pastSessions.length ? pastSessions[pastSessions.length - 1] : null;
     const items = briefItems();
-    const open = state.commitments.filter((c) => c.status === 'open').length;
     const anyDue = items.length > 0;
     const count = anyDue ? items.length : 0;
     const headline = !next ? member.first + ', you’re all clear for now.' : count ? member.first + ', ' + WORDS[count] + (count === 1 ? ' thing' : ' things') + ' before the ' + ordinal(next.date) + '.' : member.first + ', you’re clear until the ' + ordinal(next.date) + '.';
@@ -502,16 +489,15 @@
       (!anyDue ? sheet('<div class="label">Nothing due</div>' +
         '<div style="font-size:20px; font-weight:600; letter-spacing:-0.3px; line-height:1.35; max-width:24em">' + (next ? 'You are clear until your next session on ' + esc(weekday(next.date)) + ' ' + esc(longDate(next.date)) + '.' : 'You are clear for now.') + '</div>' +
         (next ? '<button class="quiet-link" data-push="session:' + next.id + '" style="border-bottom:2px solid var(--accent); min-height:0; padding-bottom:2px; width:max-content; margin-top:6px">About the day</button>' : ''), { hi: true, tab: true }) : '') +
-      nextMonthsHTML() +
-      (state.dannyLine ? '<div class="quote reveal"><i></i><div><div class="label" style="margin-bottom:4px">From Danny, ' + esc(longDate(state.dannyLine.d)) + '</div><div class="q">“' + esc(state.dannyLine.t) + '”</div></div></div>' : '') +
+      (state.dannyLine ? '<div class="quote reveal deskonly"><i></i><div><div class="label" style="margin-bottom:4px">From Danny, ' + esc(longDate(state.dannyLine.d)) + '</div><div class="q">“' + esc(state.dannyLine.t) + '”</div></div></div>' : '') +
       '</div>' +
-      '<div class="stack gb">' +
-      sheet('<div class="label" style="padding:12px 0 4px 0">Go to</div>' +
+      // A phone gets the next session only. A computer has room beside the brief,
+      // so the last session and Joe appear there at no scrolling cost.
+      (next || last || JOE_WHATSAPP ? '<div class="stack gb">' +
+      sheet('<div class="label deskonly-b" style="padding:12px 0 4px 0">Go to</div>' +
         (next ? rowBtn('session:' + next.id, 'Next session', esc(weekday(next.date)) + ' ' + esc(longDate(next.date))) : '') +
-        rowBtn('tab:commitments', 'Commitments', open + ' open') +
-        rowBtn('tab:library', 'Library', 'Frameworks and materials') +
-        rowBtn('updates', 'From TUF', state.updates.length ? esc(state.updates[0].t) : '') +
-        joeRow(), { list: true }) + '</div></div>' +
+        (last ? rowBtn('session:' + last.id, 'Last session', esc(last.title) + ', ' + esc(longDate(last.date)), '', 'deskonly') : '') +
+        joeRow('deskonly'), { list: true }) + '</div>' : '') + '</div>' +
       '<div class="pad foot">The Ultimate Founder Boardroom &middot; <button class="quiet-link" data-welcome style="font-size:12px; min-height:0">How this portal works</button></div>';
   }
 
@@ -631,18 +617,33 @@
         '<div style="display:flex; gap:10px; margin-top:10px"><button class="btn" style="flex:1" data-push="session:' + next.id + '">About the day</button><a class="btn ghost" style="flex:1; text-decoration:none" href="' + gcalFor(next) + '" target="_blank" rel="noopener" data-caltrack="' + next.id + '">Add to calendar</a></div>', { hi: true, tab: true });
     }
     views.sessions.innerHTML = topBar('Sessions') +
-      '<div class="pad head reveal" style="padding-top:20px"><div class="h1">Twelve months, in your diary.</div><div class="sub">One touchpoint a month, all year. Tap a marked day to open it.</div></div>' +
-      '<div class="pad stack" style="padding-top:14px">' + hero + sheet('<div class="label">Your year</div>' + yearCalHTML()) + '</div>' +
-      '<div class="pad"><div class="seg reveal"><span class="ind" style="transform:translateX(' + (up ? 0 : 100) + '%)"></span><button data-seg="upcoming" class="' + (up ? 'on' : '') + '">Upcoming</button><button data-seg="past" class="' + (!up ? 'on' : '') + '">Past</button></div></div>' +
-      '<div class="pad stack two" style="padding-top:14px">' + list.map((s, i) => {
-        const prepDue = up ? (s.prep || []).find((p) => p.due && !p.note && !(p.id === 'challenge' ? state.challengeSent : state.prepDone[p.id])) : null;
-        const prepNext = up && !prepDue ? (s.prep || []).find((p) => p.note) : null;
+      '<div class="pad head reveal" style="padding-top:20px"><div class="h1">Your sessions.</div><div class="sub">' + (up ? 'One touchpoint a month, all year. Tap a marked day to open it.' : 'Every session you have had, with what came out of it.') + '</div></div>' +
+      // The next session card and the year calendar belong to Upcoming, where
+      // planning ahead happens. Past is a plain dated list, nothing else.
+      (up ? '<div class="pad stack" style="padding-top:14px">' + hero + sheet('<div class="label">Your year</div>' + yearCalHTML()) + '</div>' : '') +
+      '<div class="pad" style="padding-top:' + (up ? '0' : '14px') + '"><div class="seg reveal"><span class="ind" style="transform:translateX(' + (up ? 0 : 100) + '%)"></span><button data-seg="upcoming" class="' + (up ? 'on' : '') + '">Upcoming</button><button data-seg="past" class="' + (!up ? 'on' : '') + '">Past</button></div></div>' +
+      // Past reads newest first; upcoming reads soonest first.
+      '<div class="pad stack two" style="padding-top:14px">' + (list.length ? (up ? list : list.slice().reverse()).map((s) => {
+        if (!up) {
+          // Say what is waiting inside, so there is no guessing before tapping.
+          const mine = state.commitments.filter((c) => c.fromId === s.id).length;
+          const docs = s.sdocs ? (s.sdocs.summary.length + s.sdocs.slides.length + s.sdocs.actions.length + s.sdocs.extra.length) : 0;
+          const bits = [];
+          if (docs) bits.push(s.sdocs.summary.length ? 'Summary and slides' : 'Slides and materials');
+          if (mine) bits.push(mine === 1 ? 'your commitment' : 'your ' + WORDS[Math.min(mine, 6)] + ' commitments');
+          return sheet('<span class="date"><b>' + esc(s.day) + '</b><span>' + esc(s.mon) + '</span></span><span class="d"><span class="t">' + esc(s.title) + '</span>' +
+            '<span class="m">' + esc(weekday(s.date)) + ' ' + esc(s.long) + '</span>' +
+            (bits.length ? '<span class="m">' + esc(bits.join(' and ').replace(/^./, (m) => m.toUpperCase())) + '</span>' : '') + '</span>',
+            { push: 'session:' + s.id, cls: 'ss past' });
+        }
+        const prepDue = (s.prep || []).find((p) => p.due && !p.note && !(p.id === 'challenge' ? state.challengeSent : state.prepDone[p.id]));
+        const prepNext = !prepDue ? (s.prep || []).find((p) => p.note) : null;
         const hot = !!prepDue && daysUntil(prepDue.due) <= 10;
         return sheet('<span class="date"><b>' + esc(s.day) + '</b><span>' + esc(s.mon) + '</span></span><span class="d"><span class="t">' + esc(s.title) + '</span><span class="m">' + esc(s.type) + (s.theme ? '. ' + esc(s.theme) : '') + (s.where && s.where !== 'In person' ? '. ' + esc(s.where) + '.' : '.') + '</span>' +
           (prepDue ? '<span class="due"><span class="sq"></span>' + esc(prepDue.t) + ', ' + esc(inWords(prepDue.due)) + '</span>' : '') +
-          (prepNext ? '<span class="m">' + esc(prepNext.t) + ' ' + esc(prepNext.note.charAt(0).toLowerCase() + prepNext.note.slice(1)) + '</span>' : '') +
-          (!up && s.agreed ? '<span class="m">' + s.agreed + (s.agreed === 1 ? ' commitment' : ' commitments') + ' agreed</span>' : '') + '</span>', { push: 'session:' + s.id, cls: 'ss' + (up ? '' : ' past'), tab: hot, hi: hot });
-      }).join('') + '</div>';
+          (prepNext ? '<span class="m">' + esc(prepNext.t) + ' ' + esc(prepNext.note.charAt(0).toLowerCase() + prepNext.note.slice(1)) + '</span>' : '') + '</span>',
+          { push: 'session:' + s.id, cls: 'ss', tab: hot, hi: hot });
+      }).join('') : sheet('<div class="sub" style="padding:4px 0">' + (up ? 'Your next dates will appear here.' : 'Your past sessions will appear here after your first one.') + '</div>')) + '</div>';
   }
 
   const renderers = { home: renderHome, commitments: renderCommitments, library: renderLibrary, sessions: renderSessions };
@@ -763,7 +764,7 @@
         '</div></div>';
     }
     if (type === 'updates') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">From TUF</div><div class="h1">Updates.</div></div><div class="stack">' + S('<div>' + state.updates.map((u) => '<div class="update"><div>' + esc(u.t) + '</div><div class="d">' + esc(u.d) + '</div></div>').join('') + '</div>', { list: true, style: 'padding:6px 18px' }) + '</div></div>'; }
-    if (type === 'you') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Member</div><div class="h1">' + esc(member.name) + '</div><div class="sub">' + esc(member.company || '') + '</div></div><div class="stack">' + S('<div class="kv"><div><span>Member since</span><span>' + esc(member.since || '') + '</span></div><div><span>Email</span><span>' + esc(member.email) + '</span></div><div><span>Sign in</span><span>Email code</span></div></div>', { list: true }) + '' + (JOE_WHATSAPP ? '<a class="btn ghost reveal" style="text-decoration:none" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener">Message Joe on WhatsApp</a>' : '') + '<button class="btn ghost reveal" data-welcome>How this portal works</button><button class="btn ghost reveal" data-signout>Sign out</button></div></div>'; }
+    if (type === 'you') { return top('Home') + '<div class="content"><div class="head reveal" style="padding-top:6px"><div class="label">Member</div><div class="h1">' + esc(member.name) + '</div><div class="sub">' + esc(member.company || '') + '</div></div><div class="stack">' + S('<div class="kv"><div><span>Member since</span><span>' + esc(member.since || '') + '</span></div><div><span>Email</span><span>' + esc(member.email) + '</span></div><div><span>Sign in</span><span>Email code</span></div></div>', { list: true }) + '' + (state.updates.length ? S('<div class="label" style="padding:12px 0 4px 0">From TUF</div>' + rowBtn('updates', 'Notes from the team', esc(state.updates[0].t)), { list: true }) : '') + (JOE_WHATSAPP ? '<a class="btn ghost reveal" style="text-decoration:none" href="https://wa.me/' + JOE_WHATSAPP + '" target="_blank" rel="noopener">Message Joe on WhatsApp</a>' : '') + '<button class="btn ghost reveal" data-welcome>How this portal works</button><button class="btn ghost reveal" data-signout>Sign out</button></div></div>'; }
     return top() + '<div class="content"></div>';
   }
 
